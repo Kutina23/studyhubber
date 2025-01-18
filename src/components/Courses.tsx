@@ -1,8 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Book, Clock, Users, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 export const Courses = () => {
+  const { toast } = useToast();
+  const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
+
   const courses = [
     {
       id: 1,
@@ -36,6 +41,26 @@ export const Courses = () => {
     },
   ];
 
+  const handleEnroll = (courseId: number, courseTitle: string) => {
+    if (enrolledCourses.includes(courseId)) {
+      // Handle unenrollment
+      setEnrolledCourses(enrolledCourses.filter((id) => id !== courseId));
+      toast({
+        title: "Course Unenrolled",
+        description: `You have successfully unenrolled from ${courseTitle}`,
+        variant: "default",
+      });
+    } else {
+      // Handle enrollment
+      setEnrolledCourses([...enrolledCourses, courseId]);
+      toast({
+        title: "Course Enrolled",
+        description: `You have successfully enrolled in ${courseTitle}`,
+        variant: "default",
+      });
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Available Courses</h1>
@@ -63,12 +88,19 @@ export const Courses = () => {
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Users className="w-4 h-4 mr-2" />
-                {course.enrolled} students enrolled
+                {course.enrolled + (enrolledCourses.includes(course.id) ? 1 : 0)}{" "}
+                students enrolled
               </div>
             </div>
 
             <div className="mt-6">
-              <Button className="w-full">Enroll Now</Button>
+              <Button
+                className="w-full"
+                variant={enrolledCourses.includes(course.id) ? "destructive" : "default"}
+                onClick={() => handleEnroll(course.id, course.title)}
+              >
+                {enrolledCourses.includes(course.id) ? "Unenroll" : "Enroll Now"}
+              </Button>
             </div>
           </Card>
         ))}
