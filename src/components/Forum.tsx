@@ -9,12 +9,20 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 
+type Reply = {
+  id: number;
+  content: string;
+  author: string;
+  createdAt: string;
+};
+
 type Discussion = {
   id: number;
   title: string;
   author: string;
-  replies: number;
+  replies: Reply[];
   lastActivity: string;
+  content?: string;
 };
 
 type FormValues = {
@@ -22,28 +30,43 @@ type FormValues = {
   content: string;
 };
 
+type ReplyFormValues = {
+  content: string;
+};
+
 export const Forum = () => {
   const { toast } = useToast();
+  const [selectedDiscussion, setSelectedDiscussion] = useState<Discussion | null>(null);
   const [discussions, setDiscussions] = useState<Discussion[]>([
     {
       id: 1,
       title: "Tips for Final Exams",
       author: "Sarah Johnson",
-      replies: 15,
+      content: "Here are some tips for preparing for final exams...",
+      replies: [
+        {
+          id: 1,
+          content: "Thanks for sharing these tips!",
+          author: "John Doe",
+          createdAt: "2024-01-21",
+        }
+      ],
       lastActivity: "2024-01-20",
     },
     {
       id: 2,
       title: "Study Group for Computer Science",
       author: "Mike Chen",
-      replies: 8,
+      content: "Looking for study partners for CS courses...",
+      replies: [],
       lastActivity: "2024-01-19",
     },
     {
       id: 3,
       title: "Research Paper Guidelines",
       author: "Prof. Williams",
-      replies: 23,
+      content: "Important guidelines for your research papers...",
+      replies: [],
       lastActivity: "2024-01-18",
     },
   ]);
@@ -55,12 +78,19 @@ export const Forum = () => {
     },
   });
 
+  const replyForm = useForm<ReplyFormValues>({
+    defaultValues: {
+      content: "",
+    },
+  });
+
   const onSubmit = (data: FormValues) => {
     const newDiscussion: Discussion = {
       id: discussions.length + 1,
       title: data.title,
-      author: "Current User", // In a real app, this would come from auth
-      replies: 0,
+      content: data.content,
+      author: "Current User",
+      replies: [],
       lastActivity: new Date().toISOString().split('T')[0],
     };
 
@@ -69,6 +99,35 @@ export const Forum = () => {
     toast({
       title: "Discussion Created",
       description: "Your discussion has been successfully created.",
+    });
+  };
+
+  const onReplySubmit = (data: ReplyFormValues) => {
+    if (!selectedDiscussion) return;
+
+    const newReply: Reply = {
+      id: selectedDiscussion.replies.length + 1,
+      content: data.content,
+      author: "Current User",
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    const updatedDiscussions = discussions.map(discussion =>
+      discussion.id === selectedDiscussion.id
+        ? {
+            ...discussion,
+            replies: [...discussion.replies, newReply],
+            lastActivity: new Date().toISOString().split('T')[0],
+          }
+        : discussion
+    );
+
+    setDiscussions(updatedDiscussions);
+    replyForm.reset();
+    setSelectedDiscussion(null);
+    toast({
+      title: "Reply Added",
+      description: "Your reply has been successfully added to the discussion.",
     });
   };
 
@@ -136,12 +195,67 @@ export const Forum = () => {
                 <p className="text-sm text-gray-500 mt-1">
                   Started by {discussion.author}
                 </p>
+                <p className="text-sm text-gray-700 mt-2">
+                  {discussion.content}
+                </p>
               </div>
               <div className="flex items-center text-sm text-gray-500">
                 <MessageSquare className="w-4 h-4 mr-1" />
-                {discussion.replies} replies
+                {discussion.replies.length} replies
               </div>
             </div>
+            
+            {discussion.replies.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <h4 className="text-sm font-medium text-gray-900">Replies</h4>
+                {discussion.replies.map((reply) => (
+                  <div key={reply.id} className="bg-gray-50 p-3 rounded-md">
+                    <p className="text-sm text-gray-700">{reply.content}</p>
+                    <div className="mt-2 text-xs text-gray-500">
+                      {reply.author} - {reply.createdAt}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <Dialog open={selectedDiscussion?.id === discussion.id} onOpenChange={(open) => !open && setSelectedDiscussion(null)}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" onClick={() => setSelectedDiscussion(discussion)}>
+                    Reply
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reply to Discussion</DialogTitle>
+                  </DialogHeader>
+                  <Form {...replyForm}>
+                    <form onSubmit={replyForm.handleSubmit(onReplySubmit)} className="space-y-4">
+                      <FormField
+                        control={replyForm.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Your Reply</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Write your reply here..."
+                                {...field}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        Submit Reply
+                      </Button>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
             <div className="mt-4 text-xs text-gray-400">
               Last activity: {discussion.lastActivity}
             </div>
