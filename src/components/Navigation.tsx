@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, BookOpen, MessageSquare, FileText } from "lucide-react";
+import { Home, BookOpen, MessageSquare, FileText, Settings } from "lucide-react";
 
 export const Navigation = () => {
   const location = useLocation();
@@ -10,6 +10,7 @@ export const Navigation = () => {
     { to: "/forum", icon: MessageSquare, label: "Forum" },
     { to: "/resources", icon: FileText, label: "Resources" },
     { to: "/courses", icon: BookOpen, label: "Courses" },
+    { to: "/admin", icon: Settings, label: "Admin" },
   ];
 
   return (

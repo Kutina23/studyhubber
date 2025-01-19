@@ -8,6 +8,7 @@ import { Dashboard } from "./components/Dashboard";
 import { Forum } from "./components/Forum";
 import { Resources } from "./components/Resources";
 import { Courses } from "./components/Courses";
+import { AdminDashboard } from "./components/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
               <Route path="/forum" element={<Forum />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/courses" element={<Courses />} />
+              <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
           </main>
         </div>
