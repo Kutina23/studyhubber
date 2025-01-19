@@ -1,3 +1,4 @@
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,7 +13,13 @@ import { Courses } from "./components/Courses";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { LoginForm } from "./components/auth/LoginForm";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) => {
   const { user, isAdmin, isLoading } = useAuth();
@@ -32,65 +39,69 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen bg-gray-50">
-            <Navigation />
-            <main>
-              <Routes>
-                <Route path="/login" element={<LoginForm />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/forum"
-                  element={
-                    <ProtectedRoute>
-                      <Forum />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/resources"
-                  element={
-                    <ProtectedRoute>
-                      <Resources />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/courses"
-                  element={
-                    <ProtectedRoute>
-                      <Courses />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </main>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <div className="min-h-screen bg-gray-50">
+                <Navigation />
+                <main>
+                  <Routes>
+                    <Route path="/login" element={<LoginForm />} />
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/forum"
+                      element={
+                        <ProtectedRoute>
+                          <Forum />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/resources"
+                      element={
+                        <ProtectedRoute>
+                          <Resources />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/courses"
+                      element={
+                        <ProtectedRoute>
+                          <Courses />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute requireAdmin>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </main>
+              </div>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+};
 
 export default App;
