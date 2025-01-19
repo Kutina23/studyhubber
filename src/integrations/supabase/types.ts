@@ -81,15 +81,15 @@ export type Database = {
       user_roles: {
         Row: {
           role: string
-          user_id: number
+          user_id: string
         }
         Insert: {
           role: string
-          user_id: number
+          user_id: string
         }
         Update: {
           role?: string
-          user_id?: number
+          user_id?: string
         }
         Relationships: []
       }

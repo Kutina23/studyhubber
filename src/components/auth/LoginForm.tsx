@@ -1,62 +1,50 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './AuthProvider';
 
 export const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      toast({
-        title: 'Success',
-        description: 'Logged in successfully',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+  useEffect(() => {
+    if (user) {
+      navigate('/');
     }
-  };
+  }, [user, navigate]);
 
   return (
-    <Card className="p-6 w-full max-w-md mx-auto mt-20">
-      <h2 className="text-2xl font-bold mb-6">Login</h2>
-      <form onSubmit={handleLogin} className="space-y-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md space-y-8 p-8">
         <div>
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
+            Welcome to EduHub
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Please sign in to continue
+          </p>
         </div>
-        <div>
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <Button type="submit" className="w-full">
-          Login
-        </Button>
-      </form>
-    </Card>
+        
+        <Auth
+          supabaseClient={supabase}
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: '#1e3a8a',
+                  brandAccent: '#1e40af',
+                },
+              },
+            },
+          }}
+          providers={[]}
+          redirectTo={window.location.origin}
+        />
+      </Card>
+    </div>
   );
 };
