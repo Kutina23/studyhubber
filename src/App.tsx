@@ -56,9 +56,10 @@ const AppRoutes = () => {
     <div className="min-h-screen bg-gray-50">
       {user && <Navigation />}
       <Routes>
-        <Route path="/login" element={
-          user ? <Navigate to="/" replace /> : <LoginForm />
-        } />
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/" replace /> : <LoginForm />} 
+        />
         <Route
           path="/"
           element={
@@ -110,11 +111,11 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
+          <Toaster />
+          <Sonner />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
