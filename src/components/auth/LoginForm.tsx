@@ -1,11 +1,9 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/card';
-import { useAuth } from './AuthProvider';
-import { useToast } from '@/components/ui/use-toast';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "./AuthProvider";
+import { Button } from "@/components/ui/button";
 
 export const LoginForm = () => {
   const navigate = useNavigate();
@@ -18,19 +16,21 @@ export const LoginForm = () => {
     }
   }, [user, isLoading, navigate]);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        toast({
-          title: "Welcome back!",
-          description: "You have successfully signed in.",
-        });
-        navigate('/');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  const handleGithubLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign in with GitHub",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,33 +44,21 @@ export const LoginForm = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md space-y-8 p-8">
+      <div className="w-full max-w-md space-y-8">
         <div>
-          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
-            Welcome to EduHub
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            Sign in to your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Please sign in to continue
-          </p>
         </div>
-        
-        <Auth
-          supabaseClient={supabase}
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: '#1e3a8a',
-                  brandAccent: '#1e40af',
-                },
-              },
-            },
-          }}
-          providers={[]}
-          redirectTo={window.location.origin}
-        />
-      </Card>
+        <div className="mt-8 space-y-6">
+          <Button
+            onClick={handleGithubLogin}
+            className="w-full flex justify-center py-2 px-4"
+          >
+            Sign in with GitHub
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
