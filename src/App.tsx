@@ -43,6 +43,69 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
   return <>{children}</>;
 };
 
+const AppRoutes = () => {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <main>
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/forum"
+            element={
+              <ProtectedRoute>
+                <Forum />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <Resources />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute>
+                <Courses />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+    </div>
+  );
+};
+
 const App = () => {
   return (
     <React.StrictMode>
@@ -52,54 +115,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <div className="min-h-screen bg-gray-50">
-                <Navigation />
-                <main>
-                  <Routes>
-                    <Route path="/login" element={<LoginForm />} />
-                    <Route
-                      path="/"
-                      element={
-                        <ProtectedRoute>
-                          <Dashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/forum"
-                      element={
-                        <ProtectedRoute>
-                          <Forum />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/resources"
-                      element={
-                        <ProtectedRoute>
-                          <Resources />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/courses"
-                      element={
-                        <ProtectedRoute>
-                          <Courses />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute requireAdmin>
-                          <AdminDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Routes>
-                </main>
-              </div>
+              <AppRoutes />
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>

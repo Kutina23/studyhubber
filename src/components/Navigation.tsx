@@ -1,9 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Home, BookOpen, MessageSquare, FileText, Settings } from "lucide-react";
+import { useAuth } from "./auth/AuthProvider";
 
 export const Navigation = () => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  if (!user) return null;
 
   const links = [
     { to: "/", icon: Home, label: "Dashboard" },
