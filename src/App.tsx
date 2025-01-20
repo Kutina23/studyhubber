@@ -44,7 +44,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
 };
 
 const AppRoutes = () => {
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -56,7 +56,7 @@ const AppRoutes = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      {user && <Navigation />}
       <main>
         <Routes>
           <Route path="/login" element={<LoginForm />} />
@@ -108,19 +108,17 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
