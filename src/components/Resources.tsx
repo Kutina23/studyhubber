@@ -1,45 +1,48 @@
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { FileText, Download, Book, Video } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+
+const fetchResources = async () => {
+  const { data, error } = await supabase
+    .from('resources')
+    .select('*');
+  
+  if (error) throw error;
+  
+  // Transform the data to match our component's structure
+  const groupedResources = data.reduce((acc: any[], resource) => {
+    const category = resource.type === 'video' ? 'Video Lectures' : 'Course Materials';
+    let existingCategory = acc.find(c => c.title === category);
+    
+    if (!existingCategory) {
+      existingCategory = {
+        id: acc.length + 1,
+        title: category,
+        items: []
+      };
+      acc.push(existingCategory);
+    }
+    
+    existingCategory.items.push({
+      id: resource.id.toString(),
+      name: resource.name,
+      type: resource.type,
+      size: resource.type === 'video' ? '45 mins' : '2.4 MB', // Default values since they're not in DB
+    });
+    
+    return acc;
+  }, []);
+  
+  return groupedResources;
+};
 
 export const Resources = () => {
-  const resources = [
-    {
-      id: 1,
-      title: "Course Materials",
-      items: [
-        {
-          id: "cm1",
-          name: "Introduction to Programming PDF",
-          type: "document",
-          size: "2.4 MB",
-        },
-        {
-          id: "cm2",
-          name: "Data Structures Lecture Notes",
-          type: "document",
-          size: "1.8 MB",
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Video Lectures",
-      items: [
-        {
-          id: "vl1",
-          name: "Algorithm Analysis Tutorial",
-          type: "video",
-          duration: "45 mins",
-        },
-        {
-          id: "vl2",
-          name: "Database Design Fundamentals",
-          type: "video",
-          duration: "60 mins",
-        },
-      ],
-    },
-  ];
+  const { data: resources, isLoading, error } = useQuery({
+    queryKey: ['resources'],
+    queryFn: fetchResources,
+  });
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -52,12 +55,38 @@ export const Resources = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-4">
+            <div className="h-40 bg-gray-200 rounded"></div>
+            <div className="h-40 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <Alert variant="destructive">
+          <AlertDescription>
+            Failed to load resources. Please try again later.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Learning Resources</h1>
 
       <div className="space-y-6">
-        {resources.map((category) => (
+        {resources?.map((category) => (
           <Card key={category.id} className="p-6">
             <h2 className="text-xl font-semibold mb-4">{category.title}</h2>
             <div className="space-y-4">
