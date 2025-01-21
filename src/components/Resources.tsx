@@ -3,16 +3,37 @@ import { Card } from "@/components/ui/card";
 import { FileText, Download, Book, Video } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
-const fetchResources = async () => {
+type Resource = Database['public']['Tables']['resources']['Row'];
+type GroupedResource = {
+  id: number;
+  title: string;
+  items: {
+    id: string;
+    name: string;
+    type: string;
+    size?: string;
+    duration?: string;
+  }[];
+};
+
+const fetchResources = async (): Promise<GroupedResource[]> => {
   const { data, error } = await supabase
     .from('resources')
-    .select('*');
+    .select('*')
+    .order('name');
   
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching resources:', error);
+    throw new Error('Failed to fetch resources');
+  }
   
-  // Transform the data to match our component's structure
-  const groupedResources = data.reduce((acc: any[], resource) => {
+  if (!data) {
+    return [];
+  }
+
+  return data.reduce((acc: GroupedResource[], resource: Resource) => {
     const category = resource.type === 'video' ? 'Video Lectures' : 'Course Materials';
     let existingCategory = acc.find(c => c.title === category);
     
@@ -29,19 +50,22 @@ const fetchResources = async () => {
       id: resource.id.toString(),
       name: resource.name,
       type: resource.type,
-      size: resource.type === 'video' ? '45 mins' : '2.4 MB', // Default values since they're not in DB
+      ...(resource.type === 'video' 
+        ? { duration: '45 mins' }
+        : { size: '2.4 MB' }
+      )
     });
     
     return acc;
   }, []);
-  
-  return groupedResources;
 };
 
 export const Resources = () => {
   const { data: resources, isLoading, error } = useQuery({
     queryKey: ['resources'],
     queryFn: fetchResources,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const getIcon = (type: string) => {
@@ -70,6 +94,7 @@ export const Resources = () => {
   }
 
   if (error) {
+    console.error('Resources error:', error);
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
         <Alert variant="destructive">
@@ -81,12 +106,24 @@ export const Resources = () => {
     );
   }
 
+  if (!resources || resources.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <Alert>
+          <AlertDescription>
+            No resources found.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Learning Resources</h1>
 
       <div className="space-y-6">
-        {resources?.map((category) => (
+        {resources.map((category) => (
           <Card key={category.id} className="p-6">
             <h2 className="text-xl font-semibold mb-4">{category.title}</h2>
             <div className="space-y-4">
