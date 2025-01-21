@@ -10,13 +10,33 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface Course {
+  title: string;
+  instructor: string;
+  schedule: string;
+  duration: string;
+  description: string;
+}
+
+interface Resource {
+  name: string;
+  type: string;
+  url: string;
+}
+
+interface Announcement {
+  title: string;
+  content: string;
+}
 
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  const [newCourse, setNewCourse] = useState({
+  const [newCourse, setNewCourse] = useState<Course>({
     title: "",
     instructor: "",
     schedule: "",
@@ -24,41 +44,36 @@ export const AdminDashboard = () => {
     description: "",
   });
 
-  const [newResource, setNewResource] = useState({
+  const [newResource, setNewResource] = useState<Resource>({
     name: "",
     type: "document",
     url: "",
   });
 
-  const [newAnnouncement, setNewAnnouncement] = useState({
+  const [newAnnouncement, setNewAnnouncement] = useState<Announcement>({
     title: "",
     content: "",
   });
 
-  // Query to check admin status with proper error handling
+  // Check admin status
   const { data: isAdmin, isLoading: checkingAdmin, error: adminError } = useQuery({
     queryKey: ['adminStatus', user?.id],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user?.id)
-          .single();
-          
-        if (error) throw error;
-        return data?.role === 'admin';
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        throw error;
-      }
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user?.id)
+        .single();
+        
+      if (error) throw error;
+      return data?.role === 'admin';
     },
     enabled: !!user?.id,
   });
 
-  // Mutations for adding data
+  // Mutations
   const addCourseMutation = useMutation({
-    mutationFn: async (courseData: typeof newCourse) => {
+    mutationFn: async (courseData: Course) => {
       const { error } = await supabase
         .from('courses')
         .insert([{ ...courseData, duration: parseInt(courseData.duration) || 0 }]);
@@ -66,10 +81,7 @@ export const AdminDashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['courses'] });
-      toast({
-        title: "Success",
-        description: "Course added successfully",
-      });
+      toast({ title: "Success", description: "Course added successfully" });
       setNewCourse({
         title: "",
         instructor: "",
@@ -88,7 +100,7 @@ export const AdminDashboard = () => {
   });
 
   const addResourceMutation = useMutation({
-    mutationFn: async (resourceData: typeof newResource) => {
+    mutationFn: async (resourceData: Resource) => {
       const { error } = await supabase
         .from('resources')
         .insert([resourceData]);
@@ -96,10 +108,7 @@ export const AdminDashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resources'] });
-      toast({
-        title: "Success",
-        description: "Resource added successfully",
-      });
+      toast({ title: "Success", description: "Resource added successfully" });
       setNewResource({
         name: "",
         type: "document",
@@ -116,7 +125,7 @@ export const AdminDashboard = () => {
   });
 
   const addAnnouncementMutation = useMutation({
-    mutationFn: async (announcementData: typeof newAnnouncement) => {
+    mutationFn: async (announcementData: Announcement) => {
       const { error } = await supabase
         .from('announcements')
         .insert([announcementData]);
@@ -124,10 +133,7 @@ export const AdminDashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements'] });
-      toast({
-        title: "Success",
-        description: "Announcement added successfully",
-      });
+      toast({ title: "Success", description: "Announcement added successfully" });
       setNewAnnouncement({
         title: "",
         content: "",
@@ -152,8 +158,8 @@ export const AdminDashboard = () => {
 
   if (adminError) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <Alert variant="destructive">
           <AlertDescription>
             An error occurred while checking admin access. Please try refreshing the page.
           </AlertDescription>
@@ -164,229 +170,187 @@ export const AdminDashboard = () => {
 
   if (!isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Alert className="max-w-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <Alert>
           <AlertDescription>
-            You don't have permission to access this page. Please contact an administrator if you believe this is an error.
+            You don't have permission to access this page.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  const handleAddCourse = () => {
-    if (!newCourse.title || !newCourse.instructor) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    addCourseMutation.mutate(newCourse);
-  };
-
-  const handleAddResource = () => {
-    if (!newResource.name || !newResource.url) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    addResourceMutation.mutate(newResource);
-  };
-
-  const handleAddAnnouncement = () => {
-    if (!newAnnouncement.title || !newAnnouncement.content) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    addAnnouncementMutation.mutate(newAnnouncement);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+      
+      <Tabs defaultValue="courses" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="resources">Resources</TabsTrigger>
+          <TabsTrigger value="announcements">Announcements</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Courses Management */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <Book className="w-5 h-5 text-primary mr-2" />
-            <h2 className="text-xl font-semibold">Manage Courses</h2>
-          </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full" disabled={addCourseMutation.isPending}>
-                {addCourseMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Add New Course
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Course</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Course Title"
-                  value={newCourse.title}
-                  onChange={(e) =>
-                    setNewCourse({ ...newCourse, title: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Instructor"
-                  value={newCourse.instructor}
-                  onChange={(e) =>
-                    setNewCourse({ ...newCourse, instructor: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Schedule"
-                  value={newCourse.schedule}
-                  onChange={(e) =>
-                    setNewCourse({ ...newCourse, schedule: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Duration (hours)"
-                  type="number"
-                  value={newCourse.duration}
-                  onChange={(e) =>
-                    setNewCourse({ ...newCourse, duration: e.target.value })
-                  }
-                />
-                <Textarea
-                  placeholder="Description"
-                  value={newCourse.description}
-                  onChange={(e) =>
-                    setNewCourse({ ...newCourse, description: e.target.value })
-                  }
-                />
-                <Button 
-                  onClick={handleAddCourse}
-                  disabled={addCourseMutation.isPending}
-                >
-                  {addCourseMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Add Course
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
+        <TabsContent value="courses">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <Book className="w-5 h-5 text-primary mr-2" />
+              <h2 className="text-xl font-semibold">Manage Courses</h2>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full">Add New Course</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Course</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Course Title"
+                    value={newCourse.title}
+                    onChange={(e) =>
+                      setNewCourse({ ...newCourse, title: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Instructor"
+                    value={newCourse.instructor}
+                    onChange={(e) =>
+                      setNewCourse({ ...newCourse, instructor: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Schedule"
+                    value={newCourse.schedule}
+                    onChange={(e) =>
+                      setNewCourse({ ...newCourse, schedule: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Duration (hours)"
+                    type="number"
+                    value={newCourse.duration}
+                    onChange={(e) =>
+                      setNewCourse({ ...newCourse, duration: e.target.value })
+                    }
+                  />
+                  <Textarea
+                    placeholder="Description"
+                    value={newCourse.description}
+                    onChange={(e) =>
+                      setNewCourse({ ...newCourse, description: e.target.value })
+                    }
+                  />
+                  <Button 
+                    onClick={() => addCourseMutation.mutate(newCourse)}
+                    disabled={addCourseMutation.isPending}
+                  >
+                    {addCourseMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Add Course
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </Card>
+        </TabsContent>
 
-        {/* Resources Management */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <FileText className="w-5 h-5 text-primary mr-2" />
-            <h2 className="text-xl font-semibold">Manage Resources</h2>
-          </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full" disabled={addResourceMutation.isPending}>
-                {addResourceMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Add New Resource
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Resource</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Resource Name"
-                  value={newResource.name}
-                  onChange={(e) =>
-                    setNewResource({ ...newResource, name: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Resource URL"
-                  value={newResource.url}
-                  onChange={(e) =>
-                    setNewResource({ ...newResource, url: e.target.value })
-                  }
-                />
-                <Button 
-                  onClick={handleAddResource}
-                  disabled={addResourceMutation.isPending}
-                >
-                  {addResourceMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Add Resource
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
+        <TabsContent value="resources">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <FileText className="w-5 h-5 text-primary mr-2" />
+              <h2 className="text-xl font-semibold">Manage Resources</h2>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full">Add New Resource</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Resource</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Resource Name"
+                    value={newResource.name}
+                    onChange={(e) =>
+                      setNewResource({ ...newResource, name: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Resource URL"
+                    value={newResource.url}
+                    onChange={(e) =>
+                      setNewResource({ ...newResource, url: e.target.value })
+                    }
+                  />
+                  <Button 
+                    onClick={() => addResourceMutation.mutate(newResource)}
+                    disabled={addResourceMutation.isPending}
+                  >
+                    {addResourceMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Add Resource
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </Card>
+        </TabsContent>
 
-        {/* Announcements Management */}
-        <Card className="p-6">
-          <div className="flex items-center mb-4">
-            <Bell className="w-5 h-5 text-primary mr-2" />
-            <h2 className="text-xl font-semibold">Manage Announcements</h2>
-          </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full" disabled={addAnnouncementMutation.isPending}>
-                {addAnnouncementMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Add New Announcement
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Announcement</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Announcement Title"
-                  value={newAnnouncement.title}
-                  onChange={(e) =>
-                    setNewAnnouncement({
-                      ...newAnnouncement,
-                      title: e.target.value,
-                    })
-                  }
-                />
-                <Textarea
-                  placeholder="Announcement Content"
-                  value={newAnnouncement.content}
-                  onChange={(e) =>
-                    setNewAnnouncement({
-                      ...newAnnouncement,
-                      content: e.target.value,
-                    })
-                  }
-                />
-                <Button 
-                  onClick={handleAddAnnouncement}
-                  disabled={addAnnouncementMutation.isPending}
-                >
-                  {addAnnouncementMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Add Announcement
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
-      </div>
+        <TabsContent value="announcements">
+          <Card className="p-6">
+            <div className="flex items-center mb-4">
+              <Bell className="w-5 h-5 text-primary mr-2" />
+              <h2 className="text-xl font-semibold">Manage Announcements</h2>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full">Add New Announcement</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Announcement</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Announcement Title"
+                    value={newAnnouncement.title}
+                    onChange={(e) =>
+                      setNewAnnouncement({
+                        ...newAnnouncement,
+                        title: e.target.value,
+                      })
+                    }
+                  />
+                  <Textarea
+                    placeholder="Announcement Content"
+                    value={newAnnouncement.content}
+                    onChange={(e) =>
+                      setNewAnnouncement({
+                        ...newAnnouncement,
+                        content: e.target.value,
+                      })
+                    }
+                  />
+                  <Button 
+                    onClick={() => addAnnouncementMutation.mutate(newAnnouncement)}
+                    disabled={addAnnouncementMutation.isPending}
+                  >
+                    {addAnnouncementMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Add Announcement
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
