@@ -5,13 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Book, FileText, Bell, Upload, Loader2 } from "lucide-react";
+import { Book, FileText, Bell, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export const AdminDashboard = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  
   const [newCourse, setNewCourse] = useState({
     title: "",
     instructor: "",
@@ -31,16 +35,25 @@ export const AdminDashboard = () => {
     content: "",
   });
 
-  // Query to check admin status
-  const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
-    queryKey: ['adminStatus'],
+  // Query to check admin status with proper error handling
+  const { data: isAdmin, isLoading: checkingAdmin, error: adminError } = useQuery({
+    queryKey: ['adminStatus', user?.id],
     queryFn: async () => {
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .single();
-      return roles?.role === 'admin';
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user?.id)
+          .single();
+          
+        if (error) throw error;
+        return data?.role === 'admin';
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        throw error;
+      }
     },
+    enabled: !!user?.id,
   });
 
   // Mutations for adding data
@@ -65,7 +78,7 @@ export const AdminDashboard = () => {
         description: "",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message,
@@ -93,7 +106,7 @@ export const AdminDashboard = () => {
         url: "",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message,
@@ -120,7 +133,7 @@ export const AdminDashboard = () => {
         content: "",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message,
@@ -137,13 +150,26 @@ export const AdminDashboard = () => {
     );
   }
 
+  if (adminError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertDescription>
+            An error occurred while checking admin access. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Alert className="max-w-md">
+          <AlertDescription>
+            You don't have permission to access this page. Please contact an administrator if you believe this is an error.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -185,7 +211,7 @@ export const AdminDashboard = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
