@@ -5,10 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Book, FileText, Bell, Upload } from "lucide-react";
+import { Book, FileText, Bell, Upload, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AdminDashboard = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [newCourse, setNewCourse] = useState({
     title: "",
     instructor: "",
@@ -20,13 +23,130 @@ export const AdminDashboard = () => {
   const [newResource, setNewResource] = useState({
     name: "",
     type: "document",
-    size: "",
+    url: "",
   });
 
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     content: "",
   });
+
+  // Query to check admin status
+  const { data: isAdmin, isLoading: checkingAdmin } = useQuery({
+    queryKey: ['adminStatus'],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .single();
+      return roles?.role === 'admin';
+    },
+  });
+
+  // Mutations for adding data
+  const addCourseMutation = useMutation({
+    mutationFn: async (courseData: typeof newCourse) => {
+      const { error } = await supabase
+        .from('courses')
+        .insert([{ ...courseData, duration: parseInt(courseData.duration) || 0 }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast({
+        title: "Success",
+        description: "Course added successfully",
+      });
+      setNewCourse({
+        title: "",
+        instructor: "",
+        schedule: "",
+        duration: "",
+        description: "",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addResourceMutation = useMutation({
+    mutationFn: async (resourceData: typeof newResource) => {
+      const { error } = await supabase
+        .from('resources')
+        .insert([resourceData]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
+      toast({
+        title: "Success",
+        description: "Resource added successfully",
+      });
+      setNewResource({
+        name: "",
+        type: "document",
+        url: "",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addAnnouncementMutation = useMutation({
+    mutationFn: async (announcementData: typeof newAnnouncement) => {
+      const { error } = await supabase
+        .from('announcements')
+        .insert([announcementData]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      toast({
+        title: "Success",
+        description: "Announcement added successfully",
+      });
+      setNewAnnouncement({
+        title: "",
+        content: "",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (checkingAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddCourse = () => {
     if (!newCourse.title || !newCourse.instructor) {
@@ -37,22 +157,11 @@ export const AdminDashboard = () => {
       });
       return;
     }
-
-    toast({
-      title: "Success",
-      description: "Course added successfully",
-    });
-    setNewCourse({
-      title: "",
-      instructor: "",
-      schedule: "",
-      duration: "",
-      description: "",
-    });
+    addCourseMutation.mutate(newCourse);
   };
 
   const handleAddResource = () => {
-    if (!newResource.name) {
+    if (!newResource.name || !newResource.url) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -60,16 +169,7 @@ export const AdminDashboard = () => {
       });
       return;
     }
-
-    toast({
-      title: "Success",
-      description: "Resource added successfully",
-    });
-    setNewResource({
-      name: "",
-      type: "document",
-      size: "",
-    });
+    addResourceMutation.mutate(newResource);
   };
 
   const handleAddAnnouncement = () => {
@@ -81,15 +181,7 @@ export const AdminDashboard = () => {
       });
       return;
     }
-
-    toast({
-      title: "Success",
-      description: "Announcement added successfully",
-    });
-    setNewAnnouncement({
-      title: "",
-      content: "",
-    });
+    addAnnouncementMutation.mutate(newAnnouncement);
   };
 
   return (
@@ -105,7 +197,12 @@ export const AdminDashboard = () => {
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-full">Add New Course</Button>
+              <Button className="w-full" disabled={addCourseMutation.isPending}>
+                {addCourseMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Add New Course
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -134,7 +231,8 @@ export const AdminDashboard = () => {
                   }
                 />
                 <Input
-                  placeholder="Duration"
+                  placeholder="Duration (hours)"
+                  type="number"
                   value={newCourse.duration}
                   onChange={(e) =>
                     setNewCourse({ ...newCourse, duration: e.target.value })
@@ -147,7 +245,15 @@ export const AdminDashboard = () => {
                     setNewCourse({ ...newCourse, description: e.target.value })
                   }
                 />
-                <Button onClick={handleAddCourse}>Add Course</Button>
+                <Button 
+                  onClick={handleAddCourse}
+                  disabled={addCourseMutation.isPending}
+                >
+                  {addCourseMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Add Course
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -161,7 +267,12 @@ export const AdminDashboard = () => {
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-full">Add New Resource</Button>
+              <Button className="w-full" disabled={addResourceMutation.isPending}>
+                {addResourceMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Add New Resource
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -175,11 +286,22 @@ export const AdminDashboard = () => {
                     setNewResource({ ...newResource, name: e.target.value })
                   }
                 />
-                <div className="flex items-center space-x-2">
-                  <Upload className="w-5 h-5 text-gray-500" />
-                  <span className="text-sm text-gray-500">Upload File</span>
-                </div>
-                <Button onClick={handleAddResource}>Add Resource</Button>
+                <Input
+                  placeholder="Resource URL"
+                  value={newResource.url}
+                  onChange={(e) =>
+                    setNewResource({ ...newResource, url: e.target.value })
+                  }
+                />
+                <Button 
+                  onClick={handleAddResource}
+                  disabled={addResourceMutation.isPending}
+                >
+                  {addResourceMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Add Resource
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -193,7 +315,12 @@ export const AdminDashboard = () => {
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-full">Add New Announcement</Button>
+              <Button className="w-full" disabled={addAnnouncementMutation.isPending}>
+                {addAnnouncementMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Add New Announcement
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -220,7 +347,15 @@ export const AdminDashboard = () => {
                     })
                   }
                 />
-                <Button onClick={handleAddAnnouncement}>Add Announcement</Button>
+                <Button 
+                  onClick={handleAddAnnouncement}
+                  disabled={addAnnouncementMutation.isPending}
+                >
+                  {addAnnouncementMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Add Announcement
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
