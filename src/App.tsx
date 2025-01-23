@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,17 +6,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import { Navigation } from "./components/Navigation";
-import { Dashboard } from "./components/Dashboard";
-import { Forum } from "./components/Forum";
-import { Resources } from "./components/Resources";
-import { Courses } from "./components/Courses";
-import { AdminDashboard } from "./components/AdminDashboard";
 import { LoginForm } from "./components/auth/LoginForm";
+
+// Lazy load components
+const Dashboard = React.lazy(() => import("./components/Dashboard"));
+const Forum = React.lazy(() => import("./components/Forum"));
+const Resources = React.lazy(() => import("./components/Resources"));
+const Courses = React.lazy(() => import("./components/Courses"));
+const AdminDashboard = React.lazy(() => import("./components/AdminDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
+      retry: 1,
     },
   },
 });
@@ -55,53 +59,55 @@ const AppRoutes = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {user && <Navigation />}
-      <Routes>
-        <Route 
-          path="/login" 
-          element={user ? <Navigate to="/" replace /> : <LoginForm />} 
-        />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/forum"
-          element={
-            <ProtectedRoute>
-              <Forum />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/resources"
-          element={
-            <ProtectedRoute>
-              <Resources />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/courses"
-          element={
-            <ProtectedRoute>
-              <Courses />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute requireAdmin>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route 
+            path="/login" 
+            element={user ? <Navigate to="/" replace /> : <LoginForm />} 
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/forum"
+            element={
+              <ProtectedRoute>
+                <Forum />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <ProtectedRoute>
+                <Resources />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute>
+                <Courses />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 };
