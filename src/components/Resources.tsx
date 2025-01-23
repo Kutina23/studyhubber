@@ -60,7 +60,7 @@ const fetchResources = async (): Promise<GroupedResource[]> => {
   }, []);
 };
 
-export const Resources = () => {
+const Resources = () => {
   const { data: resources, isLoading, error } = useQuery({
     queryKey: ['resources'],
     queryFn: fetchResources,
@@ -154,3 +154,5 @@ export const Resources = () => {
     </div>
   );
 };
+
+export default Resources;

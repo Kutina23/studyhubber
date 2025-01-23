@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Bell, Book, MessageSquare, FileText } from "lucide-react";
 
-export const Dashboard = () => {
+const Dashboard = () => {
   const announcements = [
     {
       id: 1,
@@ -103,3 +103,5 @@ export const Dashboard = () => {
     </div>
   );
 };
+
+export default Dashboard;

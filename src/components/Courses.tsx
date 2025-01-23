@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 
-export const Courses = () => {
+const Courses = () => {
   const { toast } = useToast();
   const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
 
@@ -108,3 +108,5 @@ export const Courses = () => {
     </div>
   );
 };
+
+export default Courses;

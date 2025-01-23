@@ -34,7 +34,7 @@ type ReplyFormValues = {
   content: string;
 };
 
-export const Forum = () => {
+const Forum = () => {
   const { toast } = useToast();
   const [selectedDiscussion, setSelectedDiscussion] = useState<Discussion | null>(null);
   const [discussions, setDiscussions] = useState<Discussion[]>([
@@ -265,3 +265,5 @@ export const Forum = () => {
     </div>
   );
 };
+
+export default Forum;

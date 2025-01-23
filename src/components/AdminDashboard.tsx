@@ -6,7 +6,7 @@ import { CourseManagement } from "./admin/CourseManagement";
 import { ResourceManagement } from "./admin/ResourceManagement";
 import { AnnouncementManagement } from "./admin/AnnouncementManagement";
 
-export const AdminDashboard = () => {
+const AdminDashboard = () => {
   const { isAdmin, isLoading } = useAuth();
 
   if (isLoading) {
@@ -55,3 +55,5 @@ export const AdminDashboard = () => {
     </div>
   );
 };
+
+export default AdminDashboard;
