@@ -1,21 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, BookOpen, MessageSquare, FileText, Settings, LogOut } from "lucide-react";
-import { useAuth } from "./auth/AuthProvider";
-import { Button } from "./ui/button";
+import { Home, BookOpen, MessageSquare, FileText } from "lucide-react";
 
 export const Navigation = () => {
   const location = useLocation();
-  const { user, isAdmin, signOut } = useAuth();
-
-  if (!user) return null;
 
   const links = [
     { to: "/", icon: Home, label: "Dashboard" },
     { to: "/forum", icon: MessageSquare, label: "Forum" },
     { to: "/resources", icon: FileText, label: "Resources" },
     { to: "/courses", icon: BookOpen, label: "Courses" },
-    ...(isAdmin ? [{ to: "/admin", icon: Settings, label: "Admin" }] : []),
   ];
 
   return (
@@ -43,17 +37,6 @@ export const Navigation = () => {
                 </Link>
               ))}
             </div>
-          </div>
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
           </div>
         </div>
       </div>

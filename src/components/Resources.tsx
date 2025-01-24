@@ -1,72 +1,45 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { FileText, Download, Book, Video } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
 
-type Resource = Database['public']['Tables']['resources']['Row'];
-type GroupedResource = {
-  id: number;
-  title: string;
-  items: {
-    id: string;
-    name: string;
-    type: string;
-    size?: string;
-    duration?: string;
-  }[];
-};
-
-const fetchResources = async (): Promise<GroupedResource[]> => {
-  const { data, error } = await supabase
-    .from('resources')
-    .select('*')
-    .order('name');
-  
-  if (error) {
-    console.error('Error fetching resources:', error);
-    throw new Error('Failed to fetch resources');
-  }
-  
-  if (!data) {
-    return [];
-  }
-
-  return data.reduce((acc: GroupedResource[], resource: Resource) => {
-    const category = resource.type === 'video' ? 'Video Lectures' : 'Course Materials';
-    let existingCategory = acc.find(c => c.title === category);
-    
-    if (!existingCategory) {
-      existingCategory = {
-        id: acc.length + 1,
-        title: category,
-        items: []
-      };
-      acc.push(existingCategory);
-    }
-    
-    existingCategory.items.push({
-      id: resource.id.toString(),
-      name: resource.name,
-      type: resource.type,
-      ...(resource.type === 'video' 
-        ? { duration: '45 mins' }
-        : { size: '2.4 MB' }
-      )
-    });
-    
-    return acc;
-  }, []);
-};
-
-const Resources = () => {
-  const { data: resources, isLoading, error } = useQuery({
-    queryKey: ['resources'],
-    queryFn: fetchResources,
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+export const Resources = () => {
+  const resources = [
+    {
+      id: 1,
+      title: "Course Materials",
+      items: [
+        {
+          id: "cm1",
+          name: "Introduction to Programming PDF",
+          type: "document",
+          size: "2.4 MB",
+        },
+        {
+          id: "cm2",
+          name: "Data Structures Lecture Notes",
+          type: "document",
+          size: "1.8 MB",
+        },
+      ],
+    },
+    {
+      id: 2,
+      title: "Video Lectures",
+      items: [
+        {
+          id: "vl1",
+          name: "Algorithm Analysis Tutorial",
+          type: "video",
+          duration: "45 mins",
+        },
+        {
+          id: "vl2",
+          name: "Database Design Fundamentals",
+          type: "video",
+          duration: "60 mins",
+        },
+      ],
+    },
+  ];
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -78,45 +51,6 @@ const Resources = () => {
         return Book;
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="space-y-4">
-            <div className="h-40 bg-gray-200 rounded"></div>
-            <div className="h-40 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error('Resources error:', error);
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <Alert variant="destructive">
-          <AlertDescription>
-            Failed to load resources. Please try again later.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!resources || resources.length === 0) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <Alert>
-          <AlertDescription>
-            No resources found.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
@@ -154,5 +88,3 @@ const Resources = () => {
     </div>
   );
 };
-
-export default Resources;
