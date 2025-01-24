@@ -58,34 +58,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    let mounted = true;
-
-    const initializeAuth = async () => {
+    // Initialize auth state
+    const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (mounted) {
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            const adminStatus = await checkAdminRole(session.user.id);
-            setIsAdmin(adminStatus);
-          }
+        if (session?.user) {
+          setUser(session.user);
+          const isUserAdmin = await checkAdminRole(session.user.id);
+          setIsAdmin(isUserAdmin);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     };
 
-    initializeAuth();
+    initAuth();
 
+    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
+      console.log('Auth state changed:', event, session);
+      
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsAdmin(false);
@@ -93,20 +88,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      setUser(session?.user ?? null);
-      
       if (session?.user) {
-        const adminStatus = await checkAdminRole(session.user.id);
-        if (mounted) {
-          setIsAdmin(adminStatus);
-        }
+        setUser(session.user);
+        const isUserAdmin = await checkAdminRole(session.user.id);
+        setIsAdmin(isUserAdmin);
+      } else {
+        setUser(null);
+        setIsAdmin(false);
       }
       
       setIsLoading(false);
     });
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
