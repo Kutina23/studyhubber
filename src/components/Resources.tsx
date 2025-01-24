@@ -107,7 +107,7 @@ export const Resources = () => {
                 <FormField
                   control={form.control}
                   name="file"
-                  render={({ field: { onChange, ...field } }) => (
+                  render={({ field: { onChange, value, ...field } }) => (
                     <FormItem>
                       <FormLabel>File</FormLabel>
                       <FormControl>
