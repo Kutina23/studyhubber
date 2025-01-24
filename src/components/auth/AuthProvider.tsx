@@ -58,29 +58,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Initialize auth state
+    let mounted = true;
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+
         if (session?.user) {
           setUser(session.user);
           const isUserAdmin = await checkAdminRole(session.user.id);
-          setIsAdmin(isUserAdmin);
+          if (mounted) setIsAdmin(isUserAdmin);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     initAuth();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session);
       
+      if (!mounted) return;
+
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsAdmin(false);
@@ -91,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (session?.user) {
         setUser(session.user);
         const isUserAdmin = await checkAdminRole(session.user.id);
-        setIsAdmin(isUserAdmin);
+        if (mounted) setIsAdmin(isUserAdmin);
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -101,6 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
