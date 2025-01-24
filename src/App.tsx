@@ -35,14 +35,17 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
   const { user, isAdmin, isLoading } = useAuth();
 
   if (isLoading) {
+    console.log('Protected route loading...');
     return <LoadingSpinner />;
   }
 
   if (!user) {
+    console.log('No user found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
+    console.log('User is not admin, redirecting to home');
     return <Navigate to="/" replace />;
   }
 
@@ -51,6 +54,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
 
 const AppRoutes = () => {
   const { user, isLoading } = useAuth();
+
+  console.log('AppRoutes render - User:', user, 'Loading:', isLoading);
 
   if (isLoading) {
     return <LoadingSpinner />;

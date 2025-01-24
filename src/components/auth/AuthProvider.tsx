@@ -58,23 +58,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    console.log('AuthProvider mounted');
     let mounted = true;
 
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initializing auth...');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
+        if (error) {
+          console.error('Error getting session:', error);
+          return;
+        }
+
         if (!mounted) return;
 
         if (session?.user) {
+          console.log('Session found:', session.user);
           setUser(session.user);
           const isUserAdmin = await checkAdminRole(session.user.id);
-          if (mounted) setIsAdmin(isUserAdmin);
+          if (mounted) {
+            setIsAdmin(isUserAdmin);
+            console.log('Admin status:', isUserAdmin);
+          }
+        } else {
+          console.log('No session found');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+          console.log('Auth initialization complete');
+        }
       }
     };
 
@@ -89,29 +105,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setIsAdmin(false);
         setIsLoading(false);
+        console.log('User signed out');
         return;
       }
 
       if (session?.user) {
         setUser(session.user);
         const isUserAdmin = await checkAdminRole(session.user.id);
-        if (mounted) setIsAdmin(isUserAdmin);
+        if (mounted) {
+          setIsAdmin(isUserAdmin);
+          console.log('User signed in:', session.user, 'Admin:', isUserAdmin);
+        }
       } else {
         setUser(null);
         setIsAdmin(false);
+        console.log('No user in session');
       }
       
       setIsLoading(false);
     });
 
     return () => {
+      console.log('AuthProvider unmounting');
       mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
+  const value = {
+    user,
+    isAdmin,
+    isLoading,
+    signOut,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAdmin, isLoading, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
