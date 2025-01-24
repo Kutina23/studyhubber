@@ -113,7 +113,11 @@ export const Resources = () => {
                       <FormControl>
                         <Input
                           type="file"
-                          onChange={(e) => onChange(e.target.files)}
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              onChange(e.target.files);
+                            }
+                          }}
                           {...field}
                         />
                       </FormControl>
