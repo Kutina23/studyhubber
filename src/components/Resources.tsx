@@ -1,7 +1,21 @@
 import { Card } from "@/components/ui/card";
-import { FileText, Download, Book, Video } from "lucide-react";
+import { FileText, Download, Book, Video, Upload, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+
+type UploadFormValues = {
+  name: string;
+  file: FileList;
+};
 
 export const Resources = () => {
+  const { toast } = useToast();
+  const form = useForm<UploadFormValues>();
+
   const resources = [
     {
       id: 1,
@@ -52,9 +66,68 @@ export const Resources = () => {
     }
   };
 
+  const onSubmit = (data: UploadFormValues) => {
+    // Here you would typically handle the file upload to a backend service
+    toast({
+      title: "File Uploaded",
+      description: `${data.name} has been successfully uploaded.`,
+    });
+    form.reset();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Learning Resources</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Learning Resources</h1>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Resource
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Resource</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Resource Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter resource name" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="file"
+                  render={({ field: { onChange, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>File</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          onChange={(e) => onChange(e.target.files)}
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  Upload
+                </Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <div className="space-y-6">
         {resources.map((category) => (
