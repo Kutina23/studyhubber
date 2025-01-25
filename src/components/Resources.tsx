@@ -19,7 +19,7 @@ type Resource = {
 
 type UploadFormValues = {
   name: string;
-  file: FileList;
+  file: FileList | null;
 };
 
 export const Resources = () => {
@@ -124,17 +124,14 @@ export const Resources = () => {
                 <FormField
                   control={form.control}
                   name="file"
-                  render={({ field: { onChange, ...field } }) => (
+                  render={({ field: { onChange, value, ...field } }) => (
                     <FormItem>
                       <FormLabel>File</FormLabel>
                       <FormControl>
                         <Input
                           type="file"
                           onChange={(e) => {
-                            const files = e.target.files;
-                            if (files?.length) {
-                              onChange(files);
-                            }
+                            onChange(e.target.files);
                           }}
                           {...field}
                         />
