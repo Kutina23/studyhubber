@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { MessageSquare, Plus, Users } from "lucide-react";
+import { MessageSquare, Plus, Users, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -53,7 +53,17 @@ type ReplyFormValues = {
   content: string;
 };
 
-export const ForumGroup = ({ group, onJoinGroup }: { group: Group; onJoinGroup: (groupId: number) => void }) => {
+export const ForumGroup = ({ 
+  group, 
+  onJoinGroup, 
+  onDeleteGroup,
+  onUpdateGroup 
+}: { 
+  group: Group; 
+  onJoinGroup: (groupId: number) => void;
+  onDeleteGroup: (groupId: number) => void;
+  onUpdateGroup: (group: Group) => void;
+}) => {
   const { toast } = useToast();
   const [selectedDiscussion, setSelectedDiscussion] = useState<GroupDiscussion | null>(null);
   
@@ -71,7 +81,21 @@ export const ForumGroup = ({ group, onJoinGroup }: { group: Group; onJoinGroup: 
   });
 
   const onDiscussionSubmit = (data: DiscussionFormValues) => {
-    // This would typically interact with a backend
+    const newDiscussion: GroupDiscussion = {
+      id: group.discussions.length + 1,
+      title: data.title,
+      content: data.content,
+      author: "Current User",
+      createdAt: new Date().toISOString().split('T')[0],
+      replies: []
+    };
+
+    const updatedGroup = {
+      ...group,
+      discussions: [newDiscussion, ...group.discussions]
+    };
+    
+    onUpdateGroup(updatedGroup);
     toast({
       title: "Discussion Created",
       description: "Your discussion has been added to the group.",
@@ -82,12 +106,48 @@ export const ForumGroup = ({ group, onJoinGroup }: { group: Group; onJoinGroup: 
   const onReplySubmit = (data: ReplyFormValues) => {
     if (!selectedDiscussion) return;
     
+    const updatedDiscussions = group.discussions.map(discussion => {
+      if (discussion.id === selectedDiscussion.id) {
+        return {
+          ...discussion,
+          replies: [...discussion.replies, {
+            id: discussion.replies.length + 1,
+            content: data.content,
+            author: "Current User",
+            createdAt: new Date().toISOString().split('T')[0]
+          }]
+        };
+      }
+      return discussion;
+    });
+
+    onUpdateGroup({
+      ...group,
+      discussions: updatedDiscussions
+    });
+
     toast({
       title: "Reply Added",
       description: "Your reply has been added to the discussion.",
     });
     replyForm.reset();
     setSelectedDiscussion(null);
+  };
+
+  const handleDeleteDiscussion = (discussionId: number) => {
+    const updatedDiscussions = group.discussions.filter(
+      discussion => discussion.id !== discussionId
+    );
+
+    onUpdateGroup({
+      ...group,
+      discussions: updatedDiscussions
+    });
+
+    toast({
+      title: "Discussion Deleted",
+      description: "The discussion has been removed from the group.",
+    });
   };
 
   return (
@@ -105,6 +165,15 @@ export const ForumGroup = ({ group, onJoinGroup }: { group: Group; onJoinGroup: 
           <Button onClick={() => onJoinGroup(group.id)}>
             Join Group
           </Button>
+          {group.createdBy === "Current User" && (
+            <Button 
+              variant="destructive" 
+              size="icon"
+              onClick={() => onDeleteGroup(group.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -171,9 +240,20 @@ export const ForumGroup = ({ group, onJoinGroup }: { group: Group; onJoinGroup: 
                   </p>
                   <p className="mt-2">{discussion.content}</p>
                 </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <MessageSquare className="w-4 h-4 mr-1" />
-                  {discussion.replies.length} replies
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-sm text-gray-500">
+                    <MessageSquare className="w-4 h-4 mr-1" />
+                    {discussion.replies.length} replies
+                  </div>
+                  {discussion.author === "Current User" && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDeleteDiscussion(discussion.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
 

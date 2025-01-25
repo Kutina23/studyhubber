@@ -89,6 +89,20 @@ export const Forum = () => {
     });
   };
 
+  const handleDeleteGroup = (groupId: number) => {
+    setGroups(groups.filter(group => group.id !== groupId));
+    toast({
+      title: "Group Deleted",
+      description: "The group has been successfully deleted.",
+    });
+  };
+
+  const handleUpdateGroup = (updatedGroup: Group) => {
+    setGroups(groups.map(group => 
+      group.id === updatedGroup.id ? updatedGroup : group
+    ));
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
       <div className="flex justify-between items-center mb-6">
@@ -148,6 +162,8 @@ export const Forum = () => {
             key={group.id} 
             group={group} 
             onJoinGroup={handleJoinGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onUpdateGroup={handleUpdateGroup}
           />
         ))}
       </div>
