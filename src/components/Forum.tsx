@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { ForumGroup, Group } from "./ForumGroup";
@@ -17,28 +17,20 @@ type FormValues = {
 
 export const Forum = () => {
   const { toast } = useToast();
-  const [groups, setGroups] = useState<Group[]>([
-    {
-      id: 1,
-      name: "Study Group A",
-      description: "General study group for Computer Science students",
-      createdBy: "John Doe",
-      createdAt: "2024-01-24",
-      members: [
-        { id: 1, name: "John Doe", joinedAt: "2024-01-24" }
-      ],
-      discussions: [
-        {
-          id: 1,
-          title: "First Meeting Schedule",
-          content: "When should we schedule our first meeting?",
-          author: "John Doe",
-          createdAt: "2024-01-24",
-          replies: []
-        }
-      ]
+  const [groups, setGroups] = useState<Group[]>([]);
+
+  // Load groups from localStorage on component mount
+  useEffect(() => {
+    const savedGroups = localStorage.getItem('forumGroups');
+    if (savedGroups) {
+      setGroups(JSON.parse(savedGroups));
     }
-  ]);
+  }, []);
+
+  // Save groups to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('forumGroups', JSON.stringify(groups));
+  }, [groups]);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -49,7 +41,7 @@ export const Forum = () => {
 
   const onSubmit = (data: FormValues) => {
     const newGroup: Group = {
-      id: groups.length + 1,
+      id: Date.now(), // Using timestamp as ID for uniqueness
       name: data.name,
       description: data.description,
       createdBy: "Current User",
