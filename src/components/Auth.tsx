@@ -193,7 +193,7 @@ export const Auth = () => {
 
       // Get user metadata to determine the correct dashboard
       const { data: { user } } = await supabase.auth.getUser();
-      const userType = user?.user_metadata?.type;
+      const userMetadataType = user?.user_metadata?.type;
 
       toast({
         title: "Login Successful",
@@ -201,9 +201,9 @@ export const Auth = () => {
       });
 
       // Redirect based on user type
-      if (userType === 'student') {
+      if (userMetadataType === 'student') {
         navigate("/dashboard");
-      } else if (userType === 'professor') {
+      } else if (userMetadataType === 'professor') {
         navigate("/professor-dashboard");
       } else {
         // Fallback to student dashboard if type is not set
