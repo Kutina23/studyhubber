@@ -10,31 +10,34 @@ import { Resources } from "./components/Resources";
 import { Courses } from "./components/Courses";
 import { Auth } from "./components/Auth";
 import Index from "./pages/Index";
+import { useState } from "react";
 
-const queryClient = new QueryClient();
+function App() {
+  const [queryClient] = useState(() => new QueryClient());
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <div className="min-h-screen bg-gray-50">
-          <Navigation />
-          <main>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/forum" element={<Forum />} />
-              <Route path="/resources" element={<Resources />} />
-              <Route path="/courses" element={<Courses />} />
-            </Routes>
-          </main>
-        </div>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <div className="min-h-screen bg-gray-50">
+            <Navigation />
+            <main>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/forum" element={<Forum />} />
+                <Route path="/resources" element={<Resources />} />
+                <Route path="/courses" element={<Courses />} />
+              </Routes>
+            </main>
+          </div>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

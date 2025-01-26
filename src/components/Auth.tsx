@@ -13,6 +13,7 @@ export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Student form state
   const [studentName, setStudentName] = useState("");
@@ -38,6 +39,7 @@ export const Auth = () => {
 
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     
     if (!validateIndexNumber(indexNumber)) {
       toast({
@@ -49,13 +51,24 @@ export const Auth = () => {
     }
 
     try {
+      setIsLoading(true);
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: studentEmail,
         password: studentPassword,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message.includes('rate_limit')) {
+          toast({
+            title: "Too Many Attempts",
+            description: "Please wait a minute before trying again",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw authError;
+      }
 
       if (authData.user) {
         // Create student profile
@@ -67,11 +80,15 @@ export const Auth = () => {
             index_number: indexNumber,
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          // If profile creation fails, we should clean up the auth user
+          await supabase.auth.signOut();
+          throw profileError;
+        }
 
         toast({
           title: "Registration Successful",
-          description: "You can now login with your index number",
+          description: "You can now login with your credentials",
         });
         setIsLogin(true);
       }
@@ -81,6 +98,8 @@ export const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -229,6 +248,7 @@ export const Auth = () => {
                       value={studentName}
                       onChange={(e) => setStudentName(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -239,6 +259,7 @@ export const Auth = () => {
                       value={studentEmail}
                       onChange={(e) => setStudentEmail(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </>
@@ -252,6 +273,7 @@ export const Auth = () => {
                   onChange={(e) => setIndexNumber(e.target.value)}
                   placeholder="1021070000"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -263,11 +285,12 @@ export const Auth = () => {
                   value={studentPassword}
                   onChange={(e) => setStudentPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                {isLogin ? "Login" : "Register"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Please wait..." : (isLogin ? "Login" : "Register")}
               </Button>
 
               <p className="text-center text-sm">
@@ -276,6 +299,7 @@ export const Auth = () => {
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
                   className="text-primary hover:underline"
+                  disabled={isLoading}
                 >
                   {isLogin ? "Register" : "Login"}
                 </button>
