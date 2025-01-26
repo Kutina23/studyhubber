@@ -8,6 +8,8 @@ import { Dashboard } from "./components/Dashboard";
 import { Forum } from "./components/Forum";
 import { Resources } from "./components/Resources";
 import { Courses } from "./components/Courses";
+import { Auth } from "./components/Auth";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +23,9 @@ const App = () => (
           <Navigation />
           <main>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/forum" element={<Forum />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/courses" element={<Courses />} />
