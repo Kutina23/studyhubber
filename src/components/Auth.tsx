@@ -198,7 +198,17 @@ export const Auth = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email Not Confirmed",
+            description: "Please check your email inbox and click the confirmation link before logging in.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       // Get user metadata to determine the correct dashboard
       const { data: { user } } = await supabase.auth.getUser();
