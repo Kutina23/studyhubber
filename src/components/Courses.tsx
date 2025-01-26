@@ -2,11 +2,43 @@ import { Card } from "@/components/ui/card";
 import { Book, Clock, Users, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Courses = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
+  const [studentId, setStudentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (studentData) {
+          setStudentId(studentData.id);
+          // Fetch enrolled courses
+          const { data: enrollments } = await supabase
+            .from('enrollments')
+            .select('course_id')
+            .eq('student_id', studentData.id);
+          
+          if (enrollments) {
+            setEnrolledCourses(enrollments.map(e => e.course_id));
+          }
+        }
+      }
+    };
+
+    fetchStudentData();
+  }, []);
 
   const courses = [
     {
@@ -41,23 +73,47 @@ export const Courses = () => {
     },
   ];
 
-  const handleEnroll = (courseId: number, courseTitle: string) => {
+  const handleEnroll = async (courseId: number, courseTitle: string) => {
+    if (!studentId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in with your student index number first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (enrolledCourses.includes(courseId)) {
-      // Handle unenrollment
-      setEnrolledCourses(enrolledCourses.filter((id) => id !== courseId));
-      toast({
-        title: "Course Unenrolled",
-        description: `You have successfully unenrolled from ${courseTitle}`,
-        variant: "default",
-      });
+      // Navigate to course resources
+      navigate(`/course-resources/${courseId}`);
     } else {
-      // Handle enrollment
-      setEnrolledCourses([...enrolledCourses, courseId]);
-      toast({
-        title: "Course Enrolled",
-        description: `You have successfully enrolled in ${courseTitle}`,
-        variant: "default",
-      });
+      try {
+        // Create enrollment
+        const { error } = await supabase
+          .from('enrollments')
+          .insert({
+            course_id: courseId,
+            student_id: studentId,
+          });
+
+        if (error) throw error;
+
+        setEnrolledCourses([...enrolledCourses, courseId]);
+        toast({
+          title: "Course Enrolled",
+          description: `You have successfully enrolled in ${courseTitle}`,
+          variant: "default",
+        });
+        
+        // Navigate to course resources
+        navigate(`/course-resources/${courseId}`);
+      } catch (error) {
+        toast({
+          title: "Enrollment Failed",
+          description: "There was an error enrolling in the course. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -96,10 +152,10 @@ export const Courses = () => {
             <div className="mt-6">
               <Button
                 className="w-full"
-                variant={enrolledCourses.includes(course.id) ? "destructive" : "default"}
+                variant={enrolledCourses.includes(course.id) ? "secondary" : "default"}
                 onClick={() => handleEnroll(course.id, course.title)}
               >
-                {enrolledCourses.includes(course.id) ? "Unenroll" : "Enroll Now"}
+                {enrolledCourses.includes(course.id) ? "View Course" : "Enroll Now"}
               </Button>
             </div>
           </Card>

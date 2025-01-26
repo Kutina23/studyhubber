@@ -30,6 +30,51 @@ export type Database = {
         }
         Relationships: []
       }
+      course_materials: {
+        Row: {
+          course_id: number | null
+          created_at: string | null
+          id: string
+          professor_id: string | null
+          title: string
+          type: string
+          url: string
+        }
+        Insert: {
+          course_id?: number | null
+          created_at?: string | null
+          id?: string
+          professor_id?: string | null
+          title: string
+          type: string
+          url: string
+        }
+        Update: {
+          course_id?: number | null
+          created_at?: string | null
+          id?: string
+          professor_id?: string | null
+          title?: string
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_materials_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_materials_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "professors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           description: string | null
@@ -57,6 +102,75 @@ export type Database = {
         }
         Relationships: []
       }
+      enrollments: {
+        Row: {
+          course_id: number | null
+          created_at: string | null
+          id: string
+          status: string
+          student_id: string | null
+        }
+        Insert: {
+          course_id?: number | null
+          created_at?: string | null
+          id?: string
+          status?: string
+          student_id?: string | null
+        }
+        Update: {
+          course_id?: number | null
+          created_at?: string | null
+          id?: string
+          status?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professors: {
+        Row: {
+          created_at: string | null
+          hourly_rate: number
+          id: string
+          name: string
+          staff_id: string
+          user_id: string | null
+          zoom_link: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hourly_rate: number
+          id?: string
+          name: string
+          staff_id: string
+          user_id?: string | null
+          zoom_link?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hourly_rate?: number
+          id?: string
+          name?: string
+          staff_id?: string
+          user_id?: string | null
+          zoom_link?: string | null
+        }
+        Relationships: []
+      }
       resources: {
         Row: {
           id: number
@@ -75,6 +189,30 @@ export type Database = {
           name?: string
           type?: string
           url?: string
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          created_at: string | null
+          id: string
+          index_number: string
+          name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          index_number: string
+          name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          index_number?: string
+          name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
