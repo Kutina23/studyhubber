@@ -205,6 +205,19 @@ export const Auth = () => {
             description: "Please check your email inbox and click the confirmation link before logging in. If you don't see the email, check your spam folder and make sure to click 'Resend confirmation email' if needed.",
             variant: "destructive",
           });
+          
+          // Add option to resend confirmation email
+          const { error: resendError } = await supabase.auth.resend({
+            type: 'signup',
+            email,
+          });
+          
+          if (!resendError) {
+            toast({
+              title: "Confirmation Email Resent",
+              description: "We've sent another confirmation email. Please check your inbox.",
+            });
+          }
           return;
         }
         throw error;
