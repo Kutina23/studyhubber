@@ -16,11 +16,16 @@ export const Courses = () => {
     const fetchStudentData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: studentData } = await supabase
+        const { data: studentData, error } = await supabase
           .from('students')
           .select('id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching student data:', error);
+          return;
+        }
         
         if (studentData) {
           setStudentId(studentData.id);
@@ -33,12 +38,20 @@ export const Courses = () => {
           if (enrollments) {
             setEnrolledCourses(enrollments.map(e => e.course_id));
           }
+        } else {
+          toast({
+            title: "Student Profile Required",
+            description: "Please create your student profile with your index number first",
+            variant: "destructive",
+          });
+          // You might want to redirect to a profile creation page here
+          // navigate('/create-profile');
         }
       }
     };
 
     fetchStudentData();
-  }, []);
+  }, [toast]);
 
   const courses = [
     {
@@ -76,10 +89,12 @@ export const Courses = () => {
   const handleEnroll = async (courseId: number, courseTitle: string) => {
     if (!studentId) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in with your student index number first",
+        title: "Student Profile Required",
+        description: "Please create your student profile with your index number first",
         variant: "destructive",
       });
+      // You might want to redirect to a profile creation page here
+      // navigate('/create-profile');
       return;
     }
 
