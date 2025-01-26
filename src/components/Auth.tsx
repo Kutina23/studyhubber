@@ -202,7 +202,7 @@ export const Auth = () => {
         if (error.message.includes('Email not confirmed')) {
           toast({
             title: "Email Not Confirmed",
-            description: "Please check your email inbox and click the confirmation link before logging in. If you don't see the email, check your spam folder.",
+            description: "Please check your email inbox and click the confirmation link before logging in. If you don't see the email, check your spam folder and make sure to click 'Resend confirmation email' if needed.",
             variant: "destructive",
           });
           return;
