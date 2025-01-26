@@ -184,6 +184,15 @@ export const Auth = () => {
       const email = userType === 'student' ? studentEmail : professorEmail;
       const password = userType === 'student' ? studentPassword : professorPassword;
 
+      if (!email || !password) {
+        toast({
+          title: "Login Failed",
+          description: "Please provide both email and password",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -247,31 +256,34 @@ export const Auth = () => {
                       disabled={isLoading}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="studentEmail">Email</Label>
-                    <Input
-                      id="studentEmail"
-                      type="email"
-                      value={studentEmail}
-                      onChange={(e) => setStudentEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
                 </>
               )}
 
               <div>
-                <Label htmlFor="indexNumber">Index Number</Label>
+                <Label htmlFor="studentEmail">Email</Label>
                 <Input
-                  id="indexNumber"
-                  value={indexNumber}
-                  onChange={(e) => setIndexNumber(e.target.value)}
-                  placeholder="1021070000"
+                  id="studentEmail"
+                  type="email"
+                  value={studentEmail}
+                  onChange={(e) => setStudentEmail(e.target.value)}
                   required
                   disabled={isLoading}
                 />
               </div>
+
+              {!isLogin && (
+                <div>
+                  <Label htmlFor="indexNumber">Index Number</Label>
+                  <Input
+                    id="indexNumber"
+                    value={indexNumber}
+                    onChange={(e) => setIndexNumber(e.target.value)}
+                    placeholder="1021070000"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="studentPassword">Password</Label>
@@ -321,31 +333,34 @@ export const Auth = () => {
                       disabled={isLoading}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="professorEmail">Email</Label>
-                    <Input
-                      id="professorEmail"
-                      type="email"
-                      value={professorEmail}
-                      onChange={(e) => setProfessorEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
                 </>
               )}
 
               <div>
-                <Label htmlFor="staffId">Staff ID</Label>
+                <Label htmlFor="professorEmail">Email</Label>
                 <Input
-                  id="staffId"
-                  value={staffId}
-                  onChange={(e) => setStaffId(e.target.value)}
-                  placeholder="ABC0000"
+                  id="professorEmail"
+                  type="email"
+                  value={professorEmail}
+                  onChange={(e) => setProfessorEmail(e.target.value)}
                   required
                   disabled={isLoading}
                 />
               </div>
+
+              {!isLogin && (
+                <div>
+                  <Label htmlFor="staffId">Staff ID</Label>
+                  <Input
+                    id="staffId"
+                    value={staffId}
+                    onChange={(e) => setStaffId(e.target.value)}
+                    placeholder="ABC0000"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="professorPassword">Password</Label>
