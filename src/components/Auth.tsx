@@ -56,6 +56,12 @@ export const Auth = () => {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: studentEmail,
         password: studentPassword,
+        options: {
+          data: {
+            name: studentName,
+            type: 'student'
+          }
+        }
       });
 
       if (authError) {
@@ -88,7 +94,7 @@ export const Auth = () => {
 
         toast({
           title: "Registration Successful",
-          description: "You can now login with your credentials",
+          description: "Please check your email to verify your account",
         });
         setIsLogin(true);
       }
@@ -105,17 +111,35 @@ export const Auth = () => {
 
   const handleProfessorRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     
     const generatedStaffId = generateStaffId(professorName);
 
     try {
+      setIsLoading(true);
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: professorEmail,
         password: professorPassword,
+        options: {
+          data: {
+            name: professorName,
+            type: 'professor'
+          }
+        }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message.includes('rate_limit')) {
+          toast({
+            title: "Too Many Attempts",
+            description: "Please wait a minute before trying again",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw authError;
+      }
 
       if (authData.user) {
         // Create professor profile
@@ -125,14 +149,18 @@ export const Auth = () => {
             user_id: authData.user.id,
             name: professorName,
             staff_id: generatedStaffId,
-            hourly_rate: 0, // Default value, can be updated later
+            hourly_rate: 0, // Default value
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          // If profile creation fails, clean up the auth user
+          await supabase.auth.signOut();
+          throw profileError;
+        }
 
         toast({
           title: "Registration Successful",
-          description: "You can now login with your staff ID",
+          description: "Please check your email to verify your account",
         });
         setIsLogin(true);
       }
@@ -142,60 +170,19 @@ export const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     
     try {
-      let email = "";
-      let password = "";
-      let userTypeForLogin = userType;
-
-      if (userType === "student") {
-        // Fetch student email using index number
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('user_id')
-          .eq('index_number', indexNumber)
-          .single();
-
-        if (studentError) throw new Error("Invalid index number");
-
-        // Get user email from auth.users
-        const { data: userData, error: userError } = await supabase
-          .from('students')
-          .select('email')
-          .eq('user_id', studentData.user_id)
-          .single();
-
-        if (userError) throw new Error("User not found");
-
-        email = studentEmail;
-        password = studentPassword;
-      } else {
-        // Fetch professor email using staff ID
-        const { data: professorData, error: professorError } = await supabase
-          .from('professors')
-          .select('user_id')
-          .eq('staff_id', staffId)
-          .single();
-
-        if (professorError) throw new Error("Invalid staff ID");
-
-        // Get user email from auth.users
-        const { data: userData, error: userError } = await supabase
-          .from('professors')
-          .select('email')
-          .eq('user_id', professorData.user_id)
-          .single();
-
-        if (userError) throw new Error("User not found");
-
-        email = professorEmail;
-        password = professorPassword;
-      }
+      setIsLoading(true);
+      const email = userType === 'student' ? studentEmail : professorEmail;
+      const password = userType === 'student' ? studentPassword : professorPassword;
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -204,16 +191,23 @@ export const Auth = () => {
 
       if (error) throw error;
 
+      // Get user metadata to determine the correct dashboard
+      const { data: { user } } = await supabase.auth.getUser();
+      const userType = user?.user_metadata?.type;
+
       toast({
         title: "Login Successful",
         description: `Welcome back!`,
       });
 
       // Redirect based on user type
-      if (userTypeForLogin === "student") {
+      if (userType === 'student') {
         navigate("/dashboard");
-      } else {
+      } else if (userType === 'professor') {
         navigate("/professor-dashboard");
+      } else {
+        // Fallback to student dashboard if type is not set
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast({
@@ -221,6 +215,8 @@ export const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -322,6 +318,7 @@ export const Auth = () => {
                       value={professorName}
                       onChange={(e) => setProfessorName(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -332,6 +329,7 @@ export const Auth = () => {
                       value={professorEmail}
                       onChange={(e) => setProfessorEmail(e.target.value)}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </>
@@ -345,6 +343,7 @@ export const Auth = () => {
                   onChange={(e) => setStaffId(e.target.value)}
                   placeholder="ABC0000"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -356,11 +355,12 @@ export const Auth = () => {
                   value={professorPassword}
                   onChange={(e) => setProfessorPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                {isLogin ? "Login" : "Register"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Please wait..." : (isLogin ? "Login" : "Register")}
               </Button>
 
               <p className="text-center text-sm">
@@ -369,6 +369,7 @@ export const Auth = () => {
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
                   className="text-primary hover:underline"
+                  disabled={isLoading}
                 >
                   {isLogin ? "Register" : "Login"}
                 </button>
