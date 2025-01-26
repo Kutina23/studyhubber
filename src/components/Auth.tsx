@@ -148,7 +148,7 @@ export const Auth = () => {
           .insert({
             user_id: authData.user.id,
             name: professorName,
-            staff_id: generatedStaffId,
+            staff_id: staffId || generatedStaffId,
             hourly_rate: 0, // Default value
           });
 
