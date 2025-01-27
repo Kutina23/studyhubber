@@ -1,9 +1,14 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, BookOpen, MessageSquare, FileText } from "lucide-react";
+import { Home, BookOpen, MessageSquare, FileText, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./AuthProvider";
+import { Button } from "./ui/button";
 
 export const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { session } = useAuth();
 
   const links = [
     { to: "/", icon: Home, label: "Dashboard" },
@@ -11,6 +16,11 @@ export const Navigation = () => {
     { to: "/resources", icon: FileText, label: "Resources" },
     { to: "/courses", icon: BookOpen, label: "Courses" },
   ];
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 fixed w-full top-0 z-50">
@@ -38,6 +48,18 @@ export const Navigation = () => {
               ))}
             </div>
           </div>
+          {session && (
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                onClick={handleLogout}
+                className="inline-flex items-center"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
