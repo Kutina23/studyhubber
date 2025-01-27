@@ -11,6 +11,7 @@ import { Courses } from "./components/Courses";
 import { Auth } from "./components/Auth";
 import { AuthProvider } from "./components/AuthProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ProfessorDashboard } from "./components/ProfessorDashboard";
 import Index from "./pages/Index";
 import { useState } from "react";
 
@@ -35,6 +36,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/professor-dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <ProfessorDashboard />
                       </ProtectedRoute>
                     }
                   />
