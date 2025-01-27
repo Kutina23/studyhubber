@@ -27,28 +27,9 @@ export const Auth = () => {
   const [professorEmail, setProfessorEmail] = useState("");
   const [professorPassword, setProfessorPassword] = useState("");
 
-  const generateStaffId = (name: string) => {
-    const prefix = name.slice(0, 3).toUpperCase();
-    const suffix = "0000";
-    return `${prefix}${suffix}`;
-  };
-
-  const validateIndexNumber = (index: string) => {
-    return /^\d{10}$/.test(index);
-  };
-
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    
-    if (!validateIndexNumber(indexNumber)) {
-      toast({
-        title: "Invalid Index Number",
-        description: "Index number must be 10 digits",
-        variant: "destructive",
-      });
-      return;
-    }
 
     try {
       setIsLoading(true);
@@ -64,17 +45,7 @@ export const Auth = () => {
         }
       });
 
-      if (authError) {
-        if (authError.message.includes('rate_limit')) {
-          toast({
-            title: "Too Many Attempts",
-            description: "Please wait a minute before trying again",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (authData.user) {
         // Create student profile
@@ -86,11 +57,7 @@ export const Auth = () => {
             index_number: indexNumber,
           });
 
-        if (profileError) {
-          // If profile creation fails, we should clean up the auth user
-          await supabase.auth.signOut();
-          throw profileError;
-        }
+        if (profileError) throw profileError;
 
         toast({
           title: "Registration Successful",
@@ -112,8 +79,6 @@ export const Auth = () => {
   const handleProfessorRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    
-    const generatedStaffId = generateStaffId(professorName);
 
     try {
       setIsLoading(true);
@@ -129,17 +94,7 @@ export const Auth = () => {
         }
       });
 
-      if (authError) {
-        if (authError.message.includes('rate_limit')) {
-          toast({
-            title: "Too Many Attempts",
-            description: "Please wait a minute before trying again",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (authData.user) {
         // Create professor profile
@@ -148,15 +103,11 @@ export const Auth = () => {
           .insert({
             user_id: authData.user.id,
             name: professorName,
-            staff_id: staffId || generatedStaffId,
+            staff_id: staffId,
             hourly_rate: 0, // Default value
           });
 
-        if (profileError) {
-          // If profile creation fails, clean up the auth user
-          await supabase.auth.signOut();
-          throw profileError;
-        }
+        if (profileError) throw profileError;
 
         toast({
           title: "Registration Successful",
@@ -178,67 +129,33 @@ export const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    
+
     try {
       setIsLoading(true);
       const email = userType === 'student' ? studentEmail : professorEmail;
       const password = userType === 'student' ? studentPassword : professorPassword;
-
-      if (!email || !password) {
-        toast({
-          title: "Login Failed",
-          description: "Please provide both email and password",
-          variant: "destructive",
-        });
-        return;
-      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
-        if (error.message.includes('Email not confirmed')) {
-          toast({
-            title: "Email Not Confirmed",
-            description: "Please check your email inbox and click the confirmation link before logging in. If you don't see the email, check your spam folder and make sure to click 'Resend confirmation email' if needed.",
-            variant: "destructive",
-          });
-          
-          // Add option to resend confirmation email
-          const { error: resendError } = await supabase.auth.resend({
-            type: 'signup',
-            email,
-          });
-          
-          if (!resendError) {
-            toast({
-              title: "Confirmation Email Resent",
-              description: "We've sent another confirmation email. Please check your inbox.",
-            });
-          }
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
-      // Get user metadata to determine the correct dashboard
       const { data: { user } } = await supabase.auth.getUser();
-      const userMetadataType = user?.user_metadata?.type;
+      const userType = user?.user_metadata?.type;
 
       toast({
         title: "Login Successful",
-        description: `Welcome back!`,
+        description: "Welcome back!",
       });
 
       // Redirect based on user type
-      if (userMetadataType === 'student') {
+      if (userType === 'student') {
         navigate("/dashboard");
-      } else if (userMetadataType === 'professor') {
+      } else if (userType === 'professor') {
         navigate("/professor-dashboard");
       } else {
-        // Fallback to student dashboard if type is not set
         navigate("/dashboard");
       }
     } catch (error: any) {
@@ -279,6 +196,16 @@ export const Auth = () => {
                       disabled={isLoading}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="indexNumber">Index Number</Label>
+                    <Input
+                      id="indexNumber"
+                      value={indexNumber}
+                      onChange={(e) => setIndexNumber(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </>
               )}
 
@@ -293,20 +220,6 @@ export const Auth = () => {
                   disabled={isLoading}
                 />
               </div>
-
-              {!isLogin && (
-                <div>
-                  <Label htmlFor="indexNumber">Index Number</Label>
-                  <Input
-                    id="indexNumber"
-                    value={indexNumber}
-                    onChange={(e) => setIndexNumber(e.target.value)}
-                    placeholder="1021070000"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
 
               <div>
                 <Label htmlFor="studentPassword">Password</Label>
@@ -356,6 +269,16 @@ export const Auth = () => {
                       disabled={isLoading}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="staffId">Staff ID</Label>
+                    <Input
+                      id="staffId"
+                      value={staffId}
+                      onChange={(e) => setStaffId(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
                 </>
               )}
 
@@ -370,20 +293,6 @@ export const Auth = () => {
                   disabled={isLoading}
                 />
               </div>
-
-              {!isLogin && (
-                <div>
-                  <Label htmlFor="staffId">Staff ID</Label>
-                  <Input
-                    id="staffId"
-                    value={staffId}
-                    onChange={(e) => setStaffId(e.target.value)}
-                    placeholder="ABC0000"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
 
               <div>
                 <Label htmlFor="professorPassword">Password</Label>
