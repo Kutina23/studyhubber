@@ -75,12 +75,55 @@ export type Database = {
           },
         ]
       }
+      course_videos: {
+        Row: {
+          course_id: number | null
+          created_at: string | null
+          id: string
+          professor_id: string | null
+          title: string
+          video_url: string
+        }
+        Insert: {
+          course_id?: number | null
+          created_at?: string | null
+          id?: string
+          professor_id?: string | null
+          title: string
+          video_url: string
+        }
+        Update: {
+          course_id?: number | null
+          created_at?: string | null
+          id?: string
+          professor_id?: string | null
+          title?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_videos_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_videos_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "professors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           description: string | null
           duration: number
           id: number
           instructor: string
+          professor_id: string | null
           schedule: string | null
           title: string
         }
@@ -89,6 +132,7 @@ export type Database = {
           duration: number
           id?: never
           instructor: string
+          professor_id?: string | null
           schedule?: string | null
           title: string
         }
@@ -97,10 +141,19 @@ export type Database = {
           duration?: number
           id?: never
           instructor?: string
+          professor_id?: string | null
           schedule?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "professors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enrollments: {
         Row: {
