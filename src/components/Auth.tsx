@@ -9,9 +9,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Auth = () => {
-  const [userType, setUserType] = useState<"student" | "professor">("student");
   const [isLoading, setIsLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [userType, setUserType] = useState<"student" | "professor">("student");
   const { toast } = useToast();
   const navigate = useNavigate();
 
