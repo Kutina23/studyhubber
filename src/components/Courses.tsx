@@ -11,6 +11,32 @@ export const Courses = () => {
   const navigate = useNavigate();
   const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [courses, setCourses] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch courses from the database
+    const fetchCourses = async () => {
+      const { data: coursesData, error } = await supabase
+        .from('courses')
+        .select('*');
+      
+      if (error) {
+        console.error('Error fetching courses:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load courses. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (coursesData) {
+        setCourses(coursesData);
+      }
+    };
+
+    fetchCourses();
+  }, [toast]);
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -44,47 +70,12 @@ export const Courses = () => {
             description: "Please create your student profile with your index number first",
             variant: "destructive",
           });
-          // You might want to redirect to a profile creation page here
-          // navigate('/create-profile');
         }
       }
     };
 
     fetchStudentData();
   }, [toast]);
-
-  const courses = [
-    {
-      id: 1,
-      title: "Introduction to Computer Science",
-      instructor: "Dr. Sarah Smith",
-      schedule: "Mon, Wed 10:00 AM",
-      enrolled: 45,
-      duration: "16 weeks",
-      description:
-        "A comprehensive introduction to computer science fundamentals, covering programming basics, algorithms, and data structures.",
-    },
-    {
-      id: 2,
-      title: "Advanced Mathematics",
-      instructor: "Prof. Michael Johnson",
-      schedule: "Tue, Thu 2:00 PM",
-      enrolled: 32,
-      duration: "16 weeks",
-      description:
-        "Advanced mathematical concepts including calculus, linear algebra, and probability theory.",
-    },
-    {
-      id: 3,
-      title: "Digital Marketing Fundamentals",
-      instructor: "Prof. Emily Chen",
-      schedule: "Wed, Fri 1:00 PM",
-      enrolled: 38,
-      duration: "12 weeks",
-      description:
-        "Learn the basics of digital marketing, including social media strategy, SEO, and content marketing.",
-    },
-  ];
 
   const handleEnroll = async (courseId: number, courseTitle: string) => {
     if (!studentId) {
@@ -93,8 +84,6 @@ export const Courses = () => {
         description: "Please create your student profile with your index number first",
         variant: "destructive",
       });
-      // You might want to redirect to a profile creation page here
-      // navigate('/create-profile');
       return;
     }
 
@@ -155,12 +144,11 @@ export const Courses = () => {
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Clock className="w-4 h-4 mr-2" />
-                Duration: {course.duration}
+                Duration: {course.duration} weeks
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Users className="w-4 h-4 mr-2" />
-                {course.enrolled + (enrolledCourses.includes(course.id) ? 1 : 0)}{" "}
-                students enrolled
+                {enrolledCourses.includes(course.id) ? "You're enrolled" : "Enroll now"}
               </div>
             </div>
 
