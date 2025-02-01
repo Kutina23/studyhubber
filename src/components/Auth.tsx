@@ -130,11 +130,11 @@ export const Auth = () => {
     e.preventDefault();
     if (isLoading) return;
 
+    const email = userType === 'student' ? studentEmail : professorEmail;
+    const password = userType === 'student' ? studentPassword : professorPassword;
+
     try {
       setIsLoading(true);
-      const email = userType === 'student' ? studentEmail : professorEmail;
-      const password = userType === 'student' ? studentPassword : professorPassword;
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -143,7 +143,7 @@ export const Auth = () => {
       if (error) throw error;
 
       const { data: { user } } = await supabase.auth.getUser();
-      const userType = user?.user_metadata?.type;
+      const userMetadataType = user?.user_metadata?.type;
 
       toast({
         title: "Login Successful",
@@ -151,9 +151,9 @@ export const Auth = () => {
       });
 
       // Redirect based on user type
-      if (userType === 'student') {
+      if (userMetadataType === 'student') {
         navigate("/dashboard");
-      } else if (userType === 'professor') {
+      } else if (userMetadataType === 'professor') {
         navigate("/professor-dashboard");
       } else {
         navigate("/dashboard");
