@@ -1,10 +1,14 @@
 import { Card } from "@/components/ui/card";
-import { Book, Clock, Users, Calendar } from "lucide-react";
+import { Book, Clock, Users, Calendar, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Courses = () => {
   const { toast } = useToast();
@@ -12,9 +16,32 @@ export const Courses = () => {
   const [enrolledCourses, setEnrolledCourses] = useState<number[]>([]);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [courses, setCourses] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [newCourse, setNewCourse] = useState({
+    title: "",
+    description: "",
+    duration: "",
+    schedule: "",
+    instructor: "",
+  });
 
   useEffect(() => {
-    // Fetch courses from the database
+    const checkUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+        
+        setIsAdmin(roles?.some(role => role.role === 'admin') || false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
+  useEffect(() => {
     const fetchCourses = async () => {
       const { data: coursesData, error } = await supabase
         .from('courses')
@@ -87,43 +114,140 @@ export const Courses = () => {
       return;
     }
 
-    if (enrolledCourses.includes(courseId)) {
+    try {
+      // Create enrollment
+      const { error } = await supabase
+        .from('enrollments')
+        .insert({
+          course_id: courseId,
+          student_id: studentId,
+        });
+
+      if (error) throw error;
+
+      setEnrolledCourses([...enrolledCourses, courseId]);
+      toast({
+        title: "Success",
+        description: `You have successfully enrolled in ${courseTitle}`,
+      });
+      
       // Navigate to course resources
       navigate(`/course-resources/${courseId}`);
-    } else {
-      try {
-        // Create enrollment
-        const { error } = await supabase
-          .from('enrollments')
-          .insert({
-            course_id: courseId,
-            student_id: studentId,
-          });
+    } catch (error) {
+      toast({
+        title: "Enrollment Failed",
+        description: "There was an error enrolling in the course. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
-        if (error) throw error;
+  const handleCreateCourse = async () => {
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .insert({
+          ...newCourse,
+          duration: parseInt(newCourse.duration),
+        });
 
-        setEnrolledCourses([...enrolledCourses, courseId]);
-        toast({
-          title: "Course Enrolled",
-          description: `You have successfully enrolled in ${courseTitle}`,
-          variant: "default",
-        });
-        
-        // Navigate to course resources
-        navigate(`/course-resources/${courseId}`);
-      } catch (error) {
-        toast({
-          title: "Enrollment Failed",
-          description: "There was an error enrolling in the course. Please try again.",
-          variant: "destructive",
-        });
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Course created successfully",
+      });
+
+      // Refresh courses list
+      const { data: coursesData } = await supabase
+        .from('courses')
+        .select('*');
+      
+      if (coursesData) {
+        setCourses(coursesData);
       }
+
+      // Reset form
+      setNewCourse({
+        title: "",
+        description: "",
+        duration: "",
+        schedule: "",
+        instructor: "",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create course. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Available Courses</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Available Courses</h1>
+        {isAdmin && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Course
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Course</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Course Title</Label>
+                  <Input
+                    id="title"
+                    value={newCourse.title}
+                    onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newCourse.description}
+                    onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="instructor">Instructor</Label>
+                  <Input
+                    id="instructor"
+                    value={newCourse.instructor}
+                    onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="duration">Duration (weeks)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={newCourse.duration}
+                    onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="schedule">Schedule</Label>
+                  <Input
+                    id="schedule"
+                    value={newCourse.schedule}
+                    onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
+                  />
+                </div>
+                <Button onClick={handleCreateCourse}>Create Course</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {courses.map((course) => (
