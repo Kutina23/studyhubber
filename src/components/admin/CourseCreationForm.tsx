@@ -1,0 +1,191 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface Professor {
+  id: string;
+  name: string;
+  zoom_link: string | null;
+  staff_id: string;
+  hourly_rate: number;
+}
+
+interface CourseCreationFormProps {
+  onCourseCreated: () => void;
+}
+
+export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps) => {
+  const { toast } = useToast();
+  const [professors, setProfessors] = useState<Professor[]>([]);
+  const [selectedProfessor, setSelectedProfessor] = useState<string>("");
+  const [newCourse, setNewCourse] = useState({
+    title: "",
+    description: "",
+    duration: "",
+    schedule: "",
+    zoom_link: "",
+  });
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchProfessors = async () => {
+      const { data, error } = await supabase
+        .from('professors')
+        .select('*');
+      
+      if (error) {
+        console.error('Error fetching professors:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load professors",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data) {
+        setProfessors(data);
+      }
+    };
+
+    fetchProfessors();
+  }, [toast]);
+
+  const handleCreateCourse = async () => {
+    if (!selectedProfessor) {
+      toast({
+        title: "Error",
+        description: "Please select a professor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const professor = professors.find(p => p.id === selectedProfessor);
+    if (!professor) return;
+
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .insert({
+          title: newCourse.title,
+          description: newCourse.description,
+          duration: parseInt(newCourse.duration),
+          schedule: newCourse.schedule,
+          professor_id: selectedProfessor,
+          instructor: professor.name,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Course created successfully",
+      });
+
+      setNewCourse({
+        title: "",
+        description: "",
+        duration: "",
+        schedule: "",
+        zoom_link: "",
+      });
+      setSelectedProfessor("");
+      setOpen(false);
+      onCourseCreated();
+    } catch (error) {
+      console.error('Error creating course:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create course",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Course
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create New Course</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+          <div>
+            <Label htmlFor="title">Course Title</Label>
+            <Input
+              id="title"
+              value={newCourse.title}
+              onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={newCourse.description}
+              onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="professor">Professor</Label>
+            <Select value={selectedProfessor} onValueChange={setSelectedProfessor}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a professor" />
+              </SelectTrigger>
+              <SelectContent>
+                {professors.map((professor) => (
+                  <SelectItem key={professor.id} value={professor.id}>
+                    {professor.name} (Staff ID: {professor.staff_id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedProfessor && (
+            <div>
+              <Label>Professor Details</Label>
+              <div className="bg-gray-50 p-4 rounded-md">
+                {professors.find(p => p.id === selectedProfessor)?.zoom_link && (
+                  <p className="text-sm">Zoom Link: {professors.find(p => p.id === selectedProfessor)?.zoom_link}</p>
+                )}
+                <p className="text-sm">Hourly Rate: ${professors.find(p => p.id === selectedProfessor)?.hourly_rate}</p>
+              </div>
+            </div>
+          )}
+          <div>
+            <Label htmlFor="duration">Duration (weeks)</Label>
+            <Input
+              id="duration"
+              type="number"
+              value={newCourse.duration}
+              onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="schedule">Schedule</Label>
+            <Input
+              id="schedule"
+              placeholder="e.g., Mon/Wed 2:00 PM - 4:00 PM"
+              value={newCourse.schedule}
+              onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
+            />
+          </div>
+          <Button onClick={handleCreateCourse} className="w-full">Create Course</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
