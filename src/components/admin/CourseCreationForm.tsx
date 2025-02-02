@@ -28,7 +28,7 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [courseData, setCourseData] = useState({
+  const [formData, setFormData] = useState({
     title: "",
     description: "",
     duration: "",
@@ -78,10 +78,10 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .insert({
-          title: courseData.title,
-          description: courseData.description,
-          duration: parseInt(courseData.duration),
-          schedule: courseData.schedule,
+          title: formData.title,
+          description: formData.description,
+          duration: parseInt(formData.duration),
+          schedule: formData.schedule,
           professor_id: selectedProfessor,
           instructor: professor.name,
         })
@@ -121,7 +121,7 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
 
       setOpen(false);
       onCourseCreated();
-      setCourseData({
+      setFormData({
         title: "",
         description: "",
         duration: "",
@@ -158,16 +158,16 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
             <Label htmlFor="title">Course Title</Label>
             <Input
               id="title"
-              value={courseData.title}
-              onChange={(e) => setCourseData({ ...courseData, title: e.target.value })}
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
           </div>
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={courseData.description}
-              onChange={(e) => setCourseData({ ...courseData, description: e.target.value })}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
           <div>
@@ -201,8 +201,8 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
             <Input
               id="duration"
               type="number"
-              value={courseData.duration}
-              onChange={(e) => setCourseData({ ...courseData, duration: e.target.value })}
+              value={formData.duration}
+              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
             />
           </div>
           <div>
@@ -210,8 +210,8 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
             <Input
               id="schedule"
               placeholder="e.g., Mon/Wed 2:00 PM - 4:00 PM"
-              value={courseData.schedule}
-              onChange={(e) => setCourseData({ ...courseData, schedule: e.target.value })}
+              value={formData.schedule}
+              onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
             />
           </div>
           <div>
