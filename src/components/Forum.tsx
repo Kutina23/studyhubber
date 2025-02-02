@@ -21,21 +21,43 @@ export const Forum = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: student } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: student, error } = await supabase
+            .from('students')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        if (student) {
-          setCurrentUser(student.name);
-          setStudentProfile(student);
+          if (error) {
+            console.error('Error fetching student:', error);
+            toast({
+              title: "Error",
+              description: "Failed to fetch student profile",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          if (student) {
+            setCurrentUser(student.name);
+            setStudentProfile(student);
+          }
         }
+      } catch (error) {
+        console.error('Error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch user data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -44,7 +66,7 @@ export const Forum = () => {
     if (savedGroups) {
       setGroups(JSON.parse(savedGroups));
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     localStorage.setItem('forumGroups', JSON.stringify(groups));
@@ -87,49 +109,15 @@ export const Forum = () => {
     });
   };
 
-  const handleJoinGroup = (groupId: number) => {
-    if (!studentProfile) {
-      toast({
-        title: "Error",
-        description: "You need to create a student profile first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setGroups(groups.map(group => {
-      if (group.id === groupId && !group.members.some(m => m.name === currentUser)) {
-        return {
-          ...group,
-          members: [...group.members, {
-            id: group.members.length + 1,
-            name: currentUser,
-            joinedAt: new Date().toISOString().split('T')[0]
-          }]
-        };
-      }
-      return group;
-    }));
-
-    toast({
-      title: "Joined Group",
-      description: "You have successfully joined the group.",
-    });
-  };
-
-  const handleDeleteGroup = (groupId: number) => {
-    setGroups(groups.filter(group => group.id !== groupId));
-    toast({
-      title: "Group Deleted",
-      description: "The group has been successfully deleted.",
-    });
-  };
-
-  const handleUpdateGroup = (updatedGroup: Group) => {
-    setGroups(groups.map(group => 
-      group.id === updatedGroup.id ? updatedGroup : group
-    ));
-  };
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <div className="flex items-center justify-center min-h-[200px]">
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
