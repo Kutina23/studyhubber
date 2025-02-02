@@ -57,15 +57,19 @@ export const ForumGroup = ({
   group, 
   onJoinGroup, 
   onDeleteGroup,
-  onUpdateGroup 
+  onUpdateGroup,
+  currentUser 
 }: { 
   group: Group; 
   onJoinGroup: (groupId: number) => void;
   onDeleteGroup: (groupId: number) => void;
   onUpdateGroup: (group: Group) => void;
+  currentUser: string;
 }) => {
   const { toast } = useToast();
   const [selectedDiscussion, setSelectedDiscussion] = useState<GroupDiscussion | null>(null);
+  const isGroupOwner = group.createdBy === currentUser;
+  const isMember = group.members.some(member => member.name === currentUser);
   
   const discussionForm = useForm<DiscussionFormValues>({
     defaultValues: {
@@ -81,11 +85,20 @@ export const ForumGroup = ({
   });
 
   const onDiscussionSubmit = (data: DiscussionFormValues) => {
+    if (!isMember) {
+      toast({
+        title: "Error",
+        description: "You must be a member of the group to create discussions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newDiscussion: GroupDiscussion = {
       id: group.discussions.length + 1,
       title: data.title,
       content: data.content,
-      author: "Current User",
+      author: currentUser,
       createdAt: new Date().toISOString().split('T')[0],
       replies: []
     };
@@ -104,6 +117,15 @@ export const ForumGroup = ({
   };
 
   const onReplySubmit = (data: ReplyFormValues) => {
+    if (!isMember) {
+      toast({
+        title: "Error",
+        description: "You must be a member of the group to reply to discussions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selectedDiscussion) return;
     
     const updatedDiscussions = group.discussions.map(discussion => {
@@ -113,7 +135,7 @@ export const ForumGroup = ({
           replies: [...discussion.replies, {
             id: discussion.replies.length + 1,
             content: data.content,
-            author: "Current User",
+            author: currentUser,
             createdAt: new Date().toISOString().split('T')[0]
           }]
         };
@@ -156,16 +178,19 @@ export const ForumGroup = ({
         <div>
           <h2 className="text-xl font-bold">{group.name}</h2>
           <p className="text-sm text-gray-500">{group.description}</p>
+          <p className="text-xs text-gray-400">Created by: {group.createdBy}</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center text-sm text-gray-500">
             <Users className="w-4 h-4 mr-1" />
             {group.members.length} members
           </div>
-          <Button onClick={() => onJoinGroup(group.id)}>
-            Join Group
-          </Button>
-          {group.createdBy === "Current User" && (
+          {!isMember && (
+            <Button onClick={() => onJoinGroup(group.id)}>
+              Join Group
+            </Button>
+          )}
+          {isGroupOwner && (
             <Button 
               variant="destructive" 
               size="icon"
@@ -177,140 +202,148 @@ export const ForumGroup = ({
         </div>
       </div>
 
-      <div className="mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Discussions</h3>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Discussion
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Discussion</DialogTitle>
-              </DialogHeader>
-              <Form {...discussionForm}>
-                <form onSubmit={discussionForm.handleSubmit(onDiscussionSubmit)} className="space-y-4">
-                  <FormField
-                    control={discussionForm.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter discussion title" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={discussionForm.control}
-                    name="content"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Content</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Write your discussion content here..."
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full">
-                    Create Discussion
-                  </Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
+      {isMember && (
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Discussions</h3>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Discussion
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Discussion</DialogTitle>
+                </DialogHeader>
+                <Form {...discussionForm}>
+                  <form onSubmit={discussionForm.handleSubmit(onDiscussionSubmit)} className="space-y-4">
+                    <FormField
+                      control={discussionForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter discussion title" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={discussionForm.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Content</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Write your discussion content here..."
+                              {...field}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full">
+                      Create Discussion
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-        <div className="space-y-4">
-          {group.discussions.map((discussion) => (
-            <Card key={discussion.id} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className="font-medium">{discussion.title}</h4>
-                  <p className="text-sm text-gray-500">
-                    by {discussion.author} on {discussion.createdAt}
-                  </p>
-                  <p className="mt-2">{discussion.content}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <MessageSquare className="w-4 h-4 mr-1" />
-                    {discussion.replies.length} replies
+          <div className="space-y-4">
+            {group.discussions.map((discussion) => (
+              <Card key={discussion.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-medium">{discussion.title}</h4>
+                    <p className="text-sm text-gray-500">
+                      by {discussion.author} on {discussion.createdAt}
+                    </p>
+                    <p className="mt-2">{discussion.content}</p>
                   </div>
-                  {discussion.author === "Current User" && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDeleteDiscussion(discussion.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {discussion.replies.length > 0 && (
-                <div className="mt-4 space-y-3">
-                  {discussion.replies.map((reply) => (
-                    <div key={reply.id} className="bg-gray-50 p-3 rounded-md">
-                      <p className="text-sm">{reply.content}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {reply.author} - {reply.createdAt}
-                      </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <MessageSquare className="w-4 h-4 mr-1" />
+                      {discussion.replies.length} replies
                     </div>
-                  ))}
+                    {discussion.author === currentUser && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDeleteDiscussion(discussion.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <div className="mt-4">
-                <Dialog open={selectedDiscussion?.id === discussion.id} 
-                       onOpenChange={(open) => !open && setSelectedDiscussion(null)}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" onClick={() => setSelectedDiscussion(discussion)}>
-                      Reply
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Reply to Discussion</DialogTitle>
-                    </DialogHeader>
-                    <Form {...replyForm}>
-                      <form onSubmit={replyForm.handleSubmit(onReplySubmit)} className="space-y-4">
-                        <FormField
-                          control={replyForm.control}
-                          name="content"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Your Reply</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Write your reply here..."
-                                  {...field}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full">
-                          Submit Reply
-                        </Button>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </Card>
-          ))}
+                {discussion.replies.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {discussion.replies.map((reply) => (
+                      <div key={reply.id} className="bg-gray-50 p-3 rounded-md">
+                        <p className="text-sm">{reply.content}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {reply.author} - {reply.createdAt}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4">
+                  <Dialog open={selectedDiscussion?.id === discussion.id} 
+                         onOpenChange={(open) => !open && setSelectedDiscussion(null)}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" onClick={() => setSelectedDiscussion(discussion)}>
+                        Reply
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reply to Discussion</DialogTitle>
+                      </DialogHeader>
+                      <Form {...replyForm}>
+                        <form onSubmit={replyForm.handleSubmit(onReplySubmit)} className="space-y-4">
+                          <FormField
+                            control={replyForm.control}
+                            name="content"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Your Reply</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Write your reply here..."
+                                    {...field}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <Button type="submit" className="w-full">
+                            Submit Reply
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!isMember && (
+        <div className="mt-6 p-4 bg-gray-50 rounded-md text-center">
+          <p className="text-gray-600">Join this group to participate in discussions</p>
+        </div>
+      )}
     </Card>
   );
 };

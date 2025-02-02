@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { ForumGroup, Group } from "./ForumGroup";
+import { supabase } from "@/integrations/supabase/client";
 
 type FormValues = {
   name: string;
@@ -18,16 +19,33 @@ type FormValues = {
 export const Forum = () => {
   const { toast } = useToast();
   const [groups, setGroups] = useState<Group[]>([]);
+  const [currentUser, setCurrentUser] = useState<string>("");
+  const [studentProfile, setStudentProfile] = useState<any>(null);
 
-  // Load groups from localStorage on component mount
   useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: student } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (student) {
+          setCurrentUser(student.name);
+          setStudentProfile(student);
+        }
+      }
+    };
+
+    fetchUserData();
     const savedGroups = localStorage.getItem('forumGroups');
     if (savedGroups) {
       setGroups(JSON.parse(savedGroups));
     }
   }, []);
 
-  // Save groups to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('forumGroups', JSON.stringify(groups));
   }, [groups]);
@@ -40,14 +58,23 @@ export const Forum = () => {
   });
 
   const onSubmit = (data: FormValues) => {
+    if (!studentProfile) {
+      toast({
+        title: "Error",
+        description: "You need to create a student profile first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newGroup: Group = {
-      id: Date.now(), // Using timestamp as ID for uniqueness
+      id: Date.now(),
       name: data.name,
       description: data.description,
-      createdBy: "Current User",
+      createdBy: currentUser,
       createdAt: new Date().toISOString().split('T')[0],
       members: [
-        { id: 1, name: "Current User", joinedAt: new Date().toISOString().split('T')[0] }
+        { id: 1, name: currentUser, joinedAt: new Date().toISOString().split('T')[0] }
       ],
       discussions: []
     };
@@ -61,13 +88,22 @@ export const Forum = () => {
   };
 
   const handleJoinGroup = (groupId: number) => {
+    if (!studentProfile) {
+      toast({
+        title: "Error",
+        description: "You need to create a student profile first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setGroups(groups.map(group => {
-      if (group.id === groupId && !group.members.some(m => m.name === "Current User")) {
+      if (group.id === groupId && !group.members.some(m => m.name === currentUser)) {
         return {
           ...group,
           members: [...group.members, {
             id: group.members.length + 1,
-            name: "Current User",
+            name: currentUser,
             joinedAt: new Date().toISOString().split('T')[0]
           }]
         };
@@ -99,54 +135,64 @@ export const Forum = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Study Groups</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Group
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create Study Group</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Group Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter group name" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe the purpose of your group..."
-                          {...field}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full">
-                  Create Group
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        {studentProfile && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Group
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Create Study Group</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Group Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter group name" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe the purpose of your group..."
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Create Group
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
+
+      {!studentProfile && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+          <p className="text-yellow-700">
+            Please create your student profile with your index number to participate in study groups.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-6">
         {groups.map((group) => (
@@ -156,6 +202,7 @@ export const Forum = () => {
             onJoinGroup={handleJoinGroup}
             onDeleteGroup={handleDeleteGroup}
             onUpdateGroup={handleUpdateGroup}
+            currentUser={currentUser}
           />
         ))}
       </div>

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,14 +25,15 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
   const { toast } = useToast();
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [selectedProfessor, setSelectedProfessor] = useState<string>("");
-  const [newCourse, setNewCourse] = useState({
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [courseData, setCourseData] = useState({
     title: "",
     description: "",
     duration: "",
     schedule: "",
-    zoom_link: "",
   });
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfessors = async () => {
@@ -68,38 +69,66 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
       return;
     }
 
-    const professor = professors.find(p => p.id === selectedProfessor);
-    if (!professor) return;
-
+    setIsUploading(true);
     try {
-      const { error } = await supabase
+      const professor = professors.find(p => p.id === selectedProfessor);
+      if (!professor) throw new Error("Professor not found");
+
+      // Create course
+      const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .insert({
-          title: newCourse.title,
-          description: newCourse.description,
-          duration: parseInt(newCourse.duration),
-          schedule: newCourse.schedule,
+          title: courseData.title,
+          description: courseData.description,
+          duration: parseInt(courseData.duration),
+          schedule: courseData.schedule,
           professor_id: selectedProfessor,
           instructor: professor.name,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (courseError) throw courseError;
+
+      // Handle video upload if a file is selected
+      if (videoFile && courseData) {
+        const fileExt = videoFile.name.split('.').pop();
+        const filePath = `${courseData.id}/${crypto.randomUUID()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('course_videos')
+          .upload(filePath, videoFile);
+
+        if (uploadError) throw uploadError;
+
+        // Create video record
+        const { error: videoError } = await supabase
+          .from('course_videos')
+          .insert({
+            course_id: courseData.id,
+            title: videoFile.name,
+            video_url: filePath,
+            professor_id: selectedProfessor,
+          });
+
+        if (videoError) throw videoError;
+      }
 
       toast({
         title: "Success",
         description: "Course created successfully",
       });
 
-      setNewCourse({
+      setOpen(false);
+      onCourseCreated();
+      setCourseData({
         title: "",
         description: "",
         duration: "",
         schedule: "",
-        zoom_link: "",
       });
       setSelectedProfessor("");
-      setOpen(false);
-      onCourseCreated();
+      setVideoFile(null);
     } catch (error) {
       console.error('Error creating course:', error);
       toast({
@@ -107,6 +136,8 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
         description: "Failed to create course",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -127,16 +158,16 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
             <Label htmlFor="title">Course Title</Label>
             <Input
               id="title"
-              value={newCourse.title}
-              onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
+              value={courseData.title}
+              onChange={(e) => setCourseData({ ...courseData, title: e.target.value })}
             />
           </div>
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={newCourse.description}
-              onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
+              value={courseData.description}
+              onChange={(e) => setCourseData({ ...courseData, description: e.target.value })}
             />
           </div>
           <div>
@@ -170,8 +201,8 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
             <Input
               id="duration"
               type="number"
-              value={newCourse.duration}
-              onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
+              value={courseData.duration}
+              onChange={(e) => setCourseData({ ...courseData, duration: e.target.value })}
             />
           </div>
           <div>
@@ -179,11 +210,33 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
             <Input
               id="schedule"
               placeholder="e.g., Mon/Wed 2:00 PM - 4:00 PM"
-              value={newCourse.schedule}
-              onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
+              value={courseData.schedule}
+              onChange={(e) => setCourseData({ ...courseData, schedule: e.target.value })}
             />
           </div>
-          <Button onClick={handleCreateCourse} className="w-full">Create Course</Button>
+          <div>
+            <Label htmlFor="video">Course Video</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="video"
+                type="file"
+                accept="video/*"
+                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+              />
+              {videoFile && (
+                <Button variant="outline" size="icon">
+                  <Upload className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <Button 
+            onClick={handleCreateCourse} 
+            className="w-full"
+            disabled={isUploading}
+          >
+            {isUploading ? "Creating Course..." : "Create Course"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
