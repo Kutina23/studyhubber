@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CourseBasicInfo } from "./CourseBasicInfo";
+import { ProfessorSelector } from "./ProfessorSelector";
+import { VideoUploader } from "./VideoUploader";
 
 interface Professor {
   id: string;
@@ -59,6 +58,10 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
     fetchProfessors();
   }, [toast]);
 
+  const handleFormChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleCreateCourse = async () => {
     if (!selectedProfessor) {
       toast({
@@ -74,7 +77,6 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
       const professor = professors.find(p => p.id === selectedProfessor);
       if (!professor) throw new Error("Professor not found");
 
-      // Create course
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .insert({
@@ -90,7 +92,6 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
 
       if (courseError) throw courseError;
 
-      // Handle video upload if a file is selected
       if (videoFile && courseData) {
         const fileExt = videoFile.name.split('.').pop();
         const filePath = `${courseData.id}/${crypto.randomUUID()}.${fileExt}`;
@@ -101,7 +102,6 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
 
         if (uploadError) throw uploadError;
 
-        // Create video record
         const { error: videoError } = await supabase
           .from('course_videos')
           .insert({
@@ -154,82 +154,16 @@ export const CourseCreationForm = ({ onCourseCreated }: CourseCreationFormProps)
           <DialogTitle>Create New Course</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div>
-            <Label htmlFor="title">Course Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="professor">Professor</Label>
-            <Select value={selectedProfessor} onValueChange={setSelectedProfessor}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a professor" />
-              </SelectTrigger>
-              <SelectContent>
-                {professors.map((professor) => (
-                  <SelectItem key={professor.id} value={professor.id}>
-                    {professor.name} (Staff ID: {professor.staff_id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {selectedProfessor && (
-            <div>
-              <Label>Professor Details</Label>
-              <div className="bg-gray-50 p-4 rounded-md">
-                {professors.find(p => p.id === selectedProfessor)?.zoom_link && (
-                  <p className="text-sm">Zoom Link: {professors.find(p => p.id === selectedProfessor)?.zoom_link}</p>
-                )}
-                <p className="text-sm">Hourly Rate: ${professors.find(p => p.id === selectedProfessor)?.hourly_rate}</p>
-              </div>
-            </div>
-          )}
-          <div>
-            <Label htmlFor="duration">Duration (weeks)</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="schedule">Schedule</Label>
-            <Input
-              id="schedule"
-              placeholder="e.g., Mon/Wed 2:00 PM - 4:00 PM"
-              value={formData.schedule}
-              onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="video">Course Video</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="video"
-                type="file"
-                accept="video/*"
-                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-              />
-              {videoFile && (
-                <Button variant="outline" size="icon">
-                  <Upload className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
+          <CourseBasicInfo formData={formData} onChange={handleFormChange} />
+          <ProfessorSelector 
+            professors={professors}
+            selectedProfessor={selectedProfessor}
+            onSelect={setSelectedProfessor}
+          />
+          <VideoUploader 
+            videoFile={videoFile}
+            onFileChange={setVideoFile}
+          />
           <Button 
             onClick={handleCreateCourse} 
             className="w-full"
