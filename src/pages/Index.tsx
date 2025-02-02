@@ -1,18 +1,23 @@
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Auth } from "@/components/Auth";
+import { useState } from "react";
 
 const Index = () => {
-  const navigate = useNavigate();
+  const [showAuth, setShowAuth] = useState(false);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold mb-4">Welcome to the Learning Platform</h1>
-        <p className="text-xl text-gray-600 mb-8">Start your learning journey today!</p>
-        <Button onClick={() => navigate("/auth")} size="lg">
-          Get Started
-        </Button>
-      </div>
+      {!showAuth ? (
+        <div className="text-center space-y-6">
+          <h1 className="text-4xl font-bold mb-4">Welcome to the Learning Platform</h1>
+          <p className="text-xl text-gray-600 mb-8">Start your learning journey today!</p>
+          <Button onClick={() => setShowAuth(true)} size="lg">
+            Get Started
+          </Button>
+        </div>
+      ) : (
+        <Auth />
+      )}
     </div>
   );
 };
