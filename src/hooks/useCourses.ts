@@ -130,6 +130,22 @@ export const useCourses = () => {
       return;
     }
 
+    // First check if the student is already enrolled
+    const { data: existingEnrollment } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (existingEnrollment) {
+      toast({
+        title: "Already Enrolled",
+        description: `You are already enrolled in ${courseTitle}`,
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('enrollments')
@@ -138,7 +154,16 @@ export const useCourses = () => {
           student_id: studentId,
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          toast({
+            title: "Already Enrolled",
+            description: `You are already enrolled in ${courseTitle}`,
+          });
+          return;
+        }
+        throw error;
+      }
 
       setEnrolledCourses([...enrolledCourses, courseId]);
       toast({
@@ -146,6 +171,7 @@ export const useCourses = () => {
         description: `You have successfully enrolled in ${courseTitle}`,
       });
     } catch (error) {
+      console.error('Enrollment error:', error);
       toast({
         title: "Enrollment Failed",
         description: "There was an error enrolling in the course. Please try again.",
