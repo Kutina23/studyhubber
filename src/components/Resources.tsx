@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 type Resource = {
   id: string;
@@ -26,19 +27,93 @@ export const Resources = () => {
   const { toast } = useToast();
   const form = useForm<UploadFormValues>();
   const [resources, setResources] = useState<Resource[]>([]);
+  const [courseMaterials, setCourseMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load resources from localStorage on component mount
   useEffect(() => {
-    const savedResources = localStorage.getItem('uploadedResources');
-    if (savedResources) {
-      setResources(JSON.parse(savedResources));
-    }
-  }, []);
+    const fetchCourseMaterials = async () => {
+      try {
+        setLoading(true);
+        // First get the current user's student profile
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast({
+            title: "Error",
+            description: "You must be logged in to view course materials",
+            variant: "destructive",
+          });
+          return;
+        }
 
-  // Save resources to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('uploadedResources', JSON.stringify(resources));
-  }, [resources]);
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (studentError || !studentData) {
+          toast({
+            title: "Error",
+            description: "Please create your student profile first",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Get the student's enrollments
+        const { data: enrollments, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .select('course_id')
+          .eq('student_id', studentData.id);
+
+        if (enrollmentError) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch your enrollments",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (!enrollments || enrollments.length === 0) {
+          toast({
+            title: "No Enrollments",
+            description: "You are not enrolled in any courses yet",
+          });
+          return;
+        }
+
+        // Get course materials for enrolled courses
+        const courseIds = enrollments.map(e => e.course_id);
+        const { data: materials, error: materialsError } = await supabase
+          .from('course_materials')
+          .select('*')
+          .in('course_id', courseIds);
+
+        if (materialsError) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch course materials",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setCourseMaterials(materials || []);
+      } catch (error) {
+        console.error('Error fetching course materials:', error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourseMaterials();
+  }, [toast]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -91,6 +166,14 @@ export const Resources = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <div className="text-center">Loading course materials...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
@@ -149,6 +232,42 @@ export const Resources = () => {
       </div>
 
       <div className="space-y-6">
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Course Materials</h2>
+          <div className="space-y-4">
+            {courseMaterials.map((material) => {
+              const ItemIcon = getIcon(material.type);
+              return (
+                <div
+                  key={material.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center">
+                    <ItemIcon className="w-5 h-5 text-primary mr-3" />
+                    <div>
+                      <h3 className="font-medium text-gray-900">{material.title}</h3>
+                      <p className="text-sm text-gray-500">{material.type}</p>
+                    </div>
+                  </div>
+                  <a 
+                    href={material.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80"
+                  >
+                    <Download className="w-5 h-5" />
+                  </a>
+                </div>
+              );
+            })}
+            {courseMaterials.length === 0 && (
+              <div className="text-center text-gray-500 py-4">
+                No course materials available for your enrolled courses
+              </div>
+            )}
+          </div>
+        </Card>
+
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Uploaded Resources</h2>
           <div className="space-y-4">
