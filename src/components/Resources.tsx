@@ -5,6 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ResourceUploadForm } from "./resources/ResourceUploadForm";
 import { CourseMaterialsList } from "./resources/CourseMaterialsList";
 import { UploadedResourcesList } from "./resources/UploadedResourcesList";
+import { Button } from "./ui/button";
+import { useNavigate } from "react-router-dom";
 
 type Resource = {
   id: string;
@@ -22,6 +24,7 @@ type UploadFormValues = {
 
 export const Resources = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [resources, setResources] = useState<Resource[]>([]);
   const [courseMaterials, setCourseMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +47,7 @@ export const Resources = () => {
           .from('students')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching student profile:', error);
@@ -57,6 +60,13 @@ export const Resources = () => {
         }
 
         setStudentProfile(profile);
+        
+        if (!profile) {
+          toast({
+            title: "Student Profile Required",
+            description: "Please create your student profile to access course materials",
+          });
+        }
       } catch (error) {
         console.error('Error:', error);
         toast({
@@ -180,6 +190,23 @@ export const Resources = () => {
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-[200px] w-full" />
           <Skeleton className="h-[200px] w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!studentProfile) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-900">Student Profile Required</h2>
+          <p className="mt-2 text-gray-600">Please create your student profile to access course materials</p>
+          <Button
+            onClick={() => navigate('/dashboard')}
+            className="mt-4"
+          >
+            Create Profile
+          </Button>
         </div>
       </div>
     );
