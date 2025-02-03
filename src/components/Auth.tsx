@@ -33,6 +33,23 @@ export const Auth = () => {
 
     try {
       setIsLoading(true);
+
+      // First check if index number is already in use
+      const { data: existingStudent } = await supabase
+        .from('students')
+        .select('id')
+        .eq('index_number', indexNumber)
+        .single();
+
+      if (existingStudent) {
+        toast({
+          title: "Registration Failed",
+          description: "This index number is already registered. Please use a different index number.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: studentEmail,
@@ -48,52 +65,48 @@ export const Auth = () => {
       if (authError) {
         if (authError.message === "User already registered") {
           toast({
-            title: "Registration Failed",
+            title: "Account Exists",
             description: "This email is already registered. Please login instead.",
             variant: "destructive",
           });
           setIsLogin(true);
-          return;
+        } else {
+          throw authError;
         }
-        throw authError;
+        return;
       }
 
       if (authData.user) {
-        try {
-          // Create student profile
-          const { error: profileError } = await supabase
-            .from('students')
-            .insert({
-              user_id: authData.user.id,
-              name: studentName,
-              index_number: indexNumber,
-            });
+        // Create student profile
+        const { error: profileError } = await supabase
+          .from('students')
+          .insert({
+            user_id: authData.user.id,
+            name: studentName,
+            index_number: indexNumber,
+          });
 
-          if (profileError) {
-            // Check for duplicate index number error
-            if (profileError.code === '23505' && profileError.message?.includes('students_index_number_key')) {
-              toast({
-                title: "Registration Failed",
-                description: "This index number is already registered. Please use a different index number.",
-                variant: "destructive",
-              });
-              // Delete the auth user since we couldn't create the profile
-              await supabase.auth.admin.deleteUser(authData.user.id);
-              return;
-            }
+        if (profileError) {
+          // If profile creation fails, sign out the user
+          await supabase.auth.signOut();
+          
+          if (profileError.code === '23505') {
+            toast({
+              title: "Registration Failed",
+              description: "This index number is already registered. Please use a different index number.",
+              variant: "destructive",
+            });
+          } else {
             throw profileError;
           }
-
-          toast({
-            title: "Registration Successful",
-            description: "Please check your email to verify your account",
-          });
-          setIsLogin(true);
-        } catch (profileError: any) {
-          // If profile creation fails, clean up by deleting the auth user
-          await supabase.auth.admin.deleteUser(authData.user.id);
-          throw profileError;
+          return;
         }
+
+        toast({
+          title: "Registration Successful",
+          description: "Please check your email to verify your account",
+        });
+        setIsLogin(true);
       }
     } catch (error: any) {
       toast({
