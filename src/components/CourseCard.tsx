@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Book, Clock, Users, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface CourseCardProps {
   course: {
@@ -16,6 +17,17 @@ interface CourseCardProps {
 }
 
 export const CourseCard = ({ course, isEnrolled, onEnroll }: CourseCardProps) => {
+  const navigate = useNavigate();
+
+  const handleButtonClick = () => {
+    if (isEnrolled) {
+      // Navigate to resources page when viewing an enrolled course
+      navigate('/resources', { state: { courseId: course.id } });
+    } else {
+      onEnroll(course.id, course.title);
+    }
+  };
+
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold text-gray-900">{course.title}</h2>
@@ -44,7 +56,7 @@ export const CourseCard = ({ course, isEnrolled, onEnroll }: CourseCardProps) =>
         <Button
           className="w-full"
           variant={isEnrolled ? "secondary" : "default"}
-          onClick={() => onEnroll(course.id, course.title)}
+          onClick={handleButtonClick}
         >
           {isEnrolled ? "View Course" : "Enroll Now"}
         </Button>
