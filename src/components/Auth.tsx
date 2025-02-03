@@ -204,6 +204,7 @@ export const Auth = () => {
                       onChange={(e) => setIndexNumber(e.target.value)}
                       required
                       disabled={isLoading}
+                      placeholder="Enter your student index number"
                     />
                   </div>
                 </>
