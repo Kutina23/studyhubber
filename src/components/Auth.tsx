@@ -45,7 +45,18 @@ export const Auth = () => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message === "User already registered") {
+          toast({
+            title: "Registration Failed",
+            description: "This email is already registered. Please login instead.",
+            variant: "destructive",
+          });
+          setIsLogin(true);
+          return;
+        }
+        throw authError;
+      }
 
       if (authData.user) {
         // Create student profile
@@ -94,7 +105,18 @@ export const Auth = () => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message === "User already registered") {
+          toast({
+            title: "Registration Failed",
+            description: "This email is already registered. Please login instead.",
+            variant: "destructive",
+          });
+          setIsLogin(true);
+          return;
+        }
+        throw authError;
+      }
 
       if (authData.user) {
         // Create professor profile
