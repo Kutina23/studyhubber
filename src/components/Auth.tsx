@@ -35,11 +35,21 @@ export const Auth = () => {
       setIsLoading(true);
 
       // First check if index number is already in use
-      const { data: existingStudent } = await supabase
+      const { data: existingStudent, error: checkError } = await supabase
         .from('students')
         .select('id')
         .eq('index_number', indexNumber)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing student:', checkError);
+        toast({
+          title: "Registration Failed",
+          description: "An error occurred while checking student information. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (existingStudent) {
         toast({
