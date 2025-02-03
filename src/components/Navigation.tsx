@@ -4,11 +4,13 @@ import { Home, BookOpen, MessageSquare, FileText, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
 import { Button } from "./ui/button";
+import { useToast } from "./ui/use-toast";
 
 export const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { toast } = useToast();
 
   const links = [
     { to: "/", icon: Home, label: "Dashboard" },
@@ -18,8 +20,26 @@ export const Navigation = () => {
   ];
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // If we get a 403 user_not_found error, the session is already invalid
+        // so we can just redirect to the auth page
+        if (error.status === 403 && error.message.includes('user_not_found')) {
+          navigate('/auth');
+          return;
+        }
+        throw error;
+      }
+      navigate('/auth');
+    } catch (error: any) {
+      toast({
+        title: "Error logging out",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      console.error("Logout error:", error);
+    }
   };
 
   return (
