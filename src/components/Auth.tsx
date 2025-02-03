@@ -59,22 +59,41 @@ export const Auth = () => {
       }
 
       if (authData.user) {
-        // Create student profile
-        const { error: profileError } = await supabase
-          .from('students')
-          .insert({
-            user_id: authData.user.id,
-            name: studentName,
-            index_number: indexNumber,
+        try {
+          // Create student profile
+          const { error: profileError } = await supabase
+            .from('students')
+            .insert({
+              user_id: authData.user.id,
+              name: studentName,
+              index_number: indexNumber,
+            });
+
+          if (profileError) {
+            // Check for duplicate index number error
+            if (profileError.code === '23505' && profileError.message?.includes('students_index_number_key')) {
+              toast({
+                title: "Registration Failed",
+                description: "This index number is already registered. Please use a different index number.",
+                variant: "destructive",
+              });
+              // Delete the auth user since we couldn't create the profile
+              await supabase.auth.admin.deleteUser(authData.user.id);
+              return;
+            }
+            throw profileError;
+          }
+
+          toast({
+            title: "Registration Successful",
+            description: "Please check your email to verify your account",
           });
-
-        if (profileError) throw profileError;
-
-        toast({
-          title: "Registration Successful",
-          description: "Please check your email to verify your account",
-        });
-        setIsLogin(true);
+          setIsLogin(true);
+        } catch (profileError: any) {
+          // If profile creation fails, clean up by deleting the auth user
+          await supabase.auth.admin.deleteUser(authData.user.id);
+          throw profileError;
+        }
       }
     } catch (error: any) {
       toast({
