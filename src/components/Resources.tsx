@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Resource = {
   id: string;
@@ -29,42 +30,64 @@ export const Resources = () => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [courseMaterials, setCourseMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
 
   useEffect(() => {
-    const fetchCourseMaterials = async () => {
+    const fetchStudentProfile = async () => {
       try {
-        setLoading(true);
-        // First get the current user's student profile
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           toast({
-            title: "Error",
-            description: "You must be logged in to view course materials",
+            title: "Authentication Required",
+            description: "Please log in to access course materials",
             variant: "destructive",
           });
           return;
         }
 
-        const { data: studentData, error: studentError } = await supabase
+        const { data: profile, error } = await supabase
           .from('students')
-          .select('id')
+          .select('*')
           .eq('user_id', user.id)
-          .maybeSingle();
+          .single();
 
-        if (studentError || !studentData) {
+        if (error) {
+          console.error('Error fetching student profile:', error);
           toast({
             title: "Error",
-            description: "Please create your student profile first",
+            description: "Failed to fetch your student profile",
             variant: "destructive",
           });
           return;
         }
 
+        setStudentProfile(profile);
+      } catch (error) {
+        console.error('Error:', error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchStudentProfile();
+  }, [toast]);
+
+  useEffect(() => {
+    const fetchCourseMaterials = async () => {
+      if (!studentProfile) return;
+
+      try {
+        setLoading(true);
+        
         // Get the student's enrollments
         const { data: enrollments, error: enrollmentError } = await supabase
           .from('enrollments')
           .select('course_id')
-          .eq('student_id', studentData.id);
+          .eq('student_id', studentProfile.id)
+          .eq('status', 'active');
 
         if (enrollmentError) {
           toast({
@@ -76,10 +99,7 @@ export const Resources = () => {
         }
 
         if (!enrollments || enrollments.length === 0) {
-          toast({
-            title: "No Enrollments",
-            description: "You are not enrolled in any courses yet",
-          });
+          setLoading(false);
           return;
         }
 
@@ -87,7 +107,12 @@ export const Resources = () => {
         const courseIds = enrollments.map(e => e.course_id);
         const { data: materials, error: materialsError } = await supabase
           .from('course_materials')
-          .select('*')
+          .select(`
+            *,
+            courses:course_id (
+              title
+            )
+          `)
           .in('course_id', courseIds);
 
         if (materialsError) {
@@ -113,7 +138,7 @@ export const Resources = () => {
     };
 
     fetchCourseMaterials();
-  }, [toast]);
+  }, [studentProfile, toast]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -170,7 +195,11 @@ export const Resources = () => {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20">
-        <div className="text-center">Loading course materials...</div>
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-[200px] w-full" />
+          <Skeleton className="h-[200px] w-full" />
+        </div>
       </div>
     );
   }
@@ -246,7 +275,9 @@ export const Resources = () => {
                     <ItemIcon className="w-5 h-5 text-primary mr-3" />
                     <div>
                       <h3 className="font-medium text-gray-900">{material.title}</h3>
-                      <p className="text-sm text-gray-500">{material.type}</p>
+                      <p className="text-sm text-gray-500">
+                        {material.courses?.title ? `Course: ${material.courses.title}` : 'Course title not available'}
+                      </p>
                     </div>
                   </div>
                   <a 
@@ -262,7 +293,11 @@ export const Resources = () => {
             })}
             {courseMaterials.length === 0 && (
               <div className="text-center text-gray-500 py-4">
-                No course materials available for your enrolled courses
+                {!studentProfile ? (
+                  "Please complete your student profile to access course materials"
+                ) : (
+                  "No course materials available for your enrolled courses"
+                )}
               </div>
             )}
           </div>
