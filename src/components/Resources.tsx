@@ -6,7 +6,7 @@ import { ResourceUploadForm } from "./resources/ResourceUploadForm";
 import { CourseMaterialsList } from "./resources/CourseMaterialsList";
 import { UploadedResourcesList } from "./resources/UploadedResourcesList";
 import { Button } from "./ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 type Resource = {
   id: string;
@@ -25,6 +25,8 @@ type UploadFormValues = {
 export const Resources = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const courseId = location.state?.courseId;
   const [resources, setResources] = useState<Resource[]>([]);
   const [courseMaterials, setCourseMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,11 +89,17 @@ export const Resources = () => {
       try {
         setLoading(true);
         
-        const { data: enrollments, error: enrollmentError } = await supabase
+        let query = supabase
           .from('enrollments')
           .select('course_id')
           .eq('student_id', studentProfile.id)
           .eq('status', 'active');
+
+        if (courseId) {
+          query = query.eq('course_id', courseId);
+        }
+
+        const { data: enrollments, error: enrollmentError } = await query;
 
         if (enrollmentError) {
           toast({
@@ -141,7 +149,7 @@ export const Resources = () => {
     };
 
     fetchCourseMaterials();
-  }, [studentProfile, toast]);
+  }, [studentProfile, courseId, toast]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
