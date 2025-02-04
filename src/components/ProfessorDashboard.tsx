@@ -26,7 +26,6 @@ export const ProfessorDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Check if user is admin
         const { data: roles } = await supabase
           .from('user_roles')
           .select('role')
@@ -97,6 +96,7 @@ export const ProfessorDashboard = () => {
         course.enrollments.map((enrollment: any) => ({
           ...enrollment,
           course_title: course.title,
+          course_id: course.id,
           student_name: enrollment.student?.name,
           student_id: enrollment.student?.index_number
         }))
@@ -106,27 +106,46 @@ export const ProfessorDashboard = () => {
   };
 
   const handleDeleteCourse = async (courseId: number) => {
-    const { error } = await supabase
-      .from('courses')
-      .delete()
-      .eq('id', courseId);
+    try {
+      // First delete all enrollments for this course
+      const { error: enrollmentError } = await supabase
+        .from('enrollments')
+        .delete()
+        .eq('course_id', courseId);
 
-    if (error) {
+      if (enrollmentError) throw enrollmentError;
+
+      // Then delete all course materials
+      const { error: materialsError } = await supabase
+        .from('course_materials')
+        .delete()
+        .eq('course_id', courseId);
+
+      if (materialsError) throw materialsError;
+
+      // Finally delete the course
+      const { error: courseError } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId);
+
+      if (courseError) throw courseError;
+
+      toast({
+        title: "Success",
+        description: "Course and related data deleted successfully",
+      });
+
+      // Refresh courses
+      fetchCourses(professorId, isAdmin);
+    } catch (error) {
+      console.error('Error deleting course:', error);
       toast({
         title: "Error",
-        description: "Failed to delete course",
+        description: "Failed to delete course and related data",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Course deleted successfully",
-    });
-
-    // Refresh courses
-    fetchCourses(professorId, isAdmin);
   };
 
   return (
