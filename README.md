@@ -1,69 +1,130 @@
-# Welcome to your Lovable project
+# Learning Management System
 
-## Project info
+A modern learning management system built with React, TypeScript, and Supabase.
 
-**URL**: https://lovable.dev/projects/6865817b-2df5-4bf4-8a16-03161adecb33
+## Features
 
-## How can I edit this code?
+- User Authentication (Students and Professors)
+- Course Management
+- Course Materials Upload and Management
+- Student Enrollment System
+- Resource Management
+- Interactive Forum
+- Real-time Updates
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- Frontend:
+  - React
+  - TypeScript
+  - Vite
+  - Tailwind CSS
+  - shadcn/ui
+  - React Query
+  - React Router
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6865817b-2df5-4bf4-8a16-03161adecb33) and start prompting.
+- Backend:
+  - Supabase (Database, Authentication, Storage)
 
-Changes made via Lovable will be committed automatically to this repo.
+## Prerequisites
 
-**Use your preferred IDE**
+Before you begin, ensure you have the following installed:
+- Node.js (v16 or higher)
+- npm or yarn
+- Git
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd <project-directory>
 ```
 
-**Edit a file directly in GitHub**
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Set up Supabase:
+   - Create a new project on [Supabase](https://supabase.com)
+   - Copy your project URL and anon key
+   - Create a `.env` file in the root directory and add your Supabase credentials:
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-**Use GitHub Codespaces**
+4. Start the development server:
+```bash
+npm run dev
+# or
+yarn dev
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The application will be available at `http://localhost:5173`
 
-## What technologies are used for this project?
+## Project Structure
 
-This project is built with .
+```
+src/
+├── components/        # React components
+├── hooks/            # Custom React hooks
+├── integrations/     # Third-party integrations
+├── pages/           # Page components
+└── App.tsx          # Main application component
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Features in Detail
 
-## How can I deploy this project?
+### Authentication
+- Student and Professor registration
+- Login/Logout functionality
+- Protected routes
 
-Simply open [Lovable](https://lovable.dev/projects/6865817b-2df5-4bf4-8a16-03161adecb33) and click on Share -> Publish.
+### Course Management
+- Create and manage courses
+- Upload course materials (PDF, Word documents, etc.)
+- View enrolled students
+- Schedule management
 
-## I want to use a custom domain - is that possible?
+### Student Features
+- Course enrollment
+- Access to course materials
+- Progress tracking
+- Forum participation
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+### Professor Features
+- Course creation
+- Material upload
+- Student management
+- Course analytics
+
+## Deployment
+
+1. Build the project:
+```bash
+npm run build
+# or
+yarn build
+```
+
+2. Deploy to your preferred hosting platform (Netlify, Vercel, etc.)
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the development team.
