@@ -9,28 +9,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Book, Users, Video } from "lucide-react";
+import { Book, Users, Video, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CourseCreationForm } from "./admin/CourseCreationForm";
+import { Button } from "./ui/button";
 
 export const ProfessorDashboard = () => {
   const { toast } = useToast();
   const [courses, setCourses] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [professorId, setProfessorId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchProfessorData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
+        // Check if user is admin
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+        
+        setIsAdmin(roles?.some(role => role.role === 'admin') || false);
+
         const { data: professorData, error: professorError } = await supabase
           .from('professors')
           .select('*')
           .eq('user_id', user.id)
           .single();
 
-        if (professorError) {
+        if (professorError && !isAdmin) {
           console.error('Error fetching professor:', professorError);
           toast({
             title: "Error",
@@ -42,28 +52,34 @@ export const ProfessorDashboard = () => {
 
         if (professorData) {
           setProfessorId(professorData.id);
-          fetchProfessorCourses(professorData.id);
         }
+        fetchCourses(professorData?.id, isAdmin);
       }
     };
 
     fetchProfessorData();
   }, [toast]);
 
-  const fetchProfessorCourses = async (profId: string) => {
-    const { data: coursesData, error: coursesError } = await supabase
+  const fetchCourses = async (profId: string | null, isAdmin: boolean) => {
+    let query = supabase
       .from('courses')
       .select(`
         *,
         enrollments (
           id,
           student:students (
+            id,
             name,
             index_number
           )
         )
-      `)
-      .eq('professor_id', profId);
+      `);
+
+    if (!isAdmin && profId) {
+      query = query.eq('professor_id', profId);
+    }
+
+    const { data: coursesData, error: coursesError } = await query;
 
     if (coursesError) {
       console.error('Error fetching courses:', coursesError);
@@ -80,11 +96,37 @@ export const ProfessorDashboard = () => {
       const allEnrollments = coursesData.flatMap((course: any) => 
         course.enrollments.map((enrollment: any) => ({
           ...enrollment,
-          course_title: course.title
+          course_title: course.title,
+          student_name: enrollment.student?.name,
+          student_id: enrollment.student?.index_number
         }))
       );
       setEnrollments(allEnrollments);
     }
+  };
+
+  const handleDeleteCourse = async (courseId: number) => {
+    const { error } = await supabase
+      .from('courses')
+      .delete()
+      .eq('id', courseId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete course",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Course deleted successfully",
+    });
+
+    // Refresh courses
+    fetchCourses(professorId, isAdmin);
   };
 
   return (
@@ -124,7 +166,7 @@ export const ProfessorDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <CourseCreationForm onCourseCreated={() => professorId && fetchProfessorCourses(professorId)} />
+        <CourseCreationForm onCourseCreated={() => fetchCourses(professorId, isAdmin)} />
 
         <Card>
           <CardHeader>
@@ -137,14 +179,26 @@ export const ProfessorDashboard = () => {
                   <TableHead>Course</TableHead>
                   <TableHead>Student Name</TableHead>
                   <TableHead>Student ID</TableHead>
+                  {isAdmin && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {enrollments.map((enrollment) => (
                   <TableRow key={enrollment.id}>
                     <TableCell>{enrollment.course_title}</TableCell>
-                    <TableCell>{enrollment.student?.name}</TableCell>
-                    <TableCell>{enrollment.student?.index_number}</TableCell>
+                    <TableCell>{enrollment.student_name}</TableCell>
+                    <TableCell>{enrollment.student_id}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteCourse(enrollment.course_id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
