@@ -105,6 +105,7 @@ export const ProfessorDashboard = () => {
           <CardContent>
             <EnrollmentTable 
               enrollments={enrollments}
+              isAdmin={false}
               onDeleteCourse={async (courseId) => {
                 try {
                   const { error: enrollmentError } = await supabase
