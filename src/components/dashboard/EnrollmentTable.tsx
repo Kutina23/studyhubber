@@ -13,8 +13,10 @@ interface Enrollment {
   id: string;
   course_title: string;
   course_id: number;
-  student_name: string;
-  student_id: string;
+  student: {
+    name: string;
+    index_number: string;
+  };
 }
 
 interface EnrollmentTableProps {
@@ -38,8 +40,8 @@ export const EnrollmentTable = ({ enrollments, isAdmin, onDeleteCourse }: Enroll
         {enrollments.map((enrollment) => (
           <TableRow key={enrollment.id}>
             <TableCell>{enrollment.course_title}</TableCell>
-            <TableCell>{enrollment.student_name}</TableCell>
-            <TableCell>{enrollment.student_id}</TableCell>
+            <TableCell>{enrollment.student?.name || 'N/A'}</TableCell>
+            <TableCell>{enrollment.student?.index_number || 'N/A'}</TableCell>
             {isAdmin && (
               <TableCell>
                 <Button

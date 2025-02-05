@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardStats } from "./dashboard/DashboardStats";
 import { EnrollmentTable } from "./dashboard/EnrollmentTable";
 import { CourseManagement } from "./dashboard/CourseManagement";
+import { ProfessorCourses } from "./dashboard/ProfessorCourses";
 
 export const ProfessorDashboard = () => {
   const { toast } = useToast();
@@ -89,50 +90,10 @@ export const ProfessorDashboard = () => {
           ...enrollment,
           course_title: course.title,
           course_id: course.id,
-          student_name: enrollment.student?.name,
-          student_id: enrollment.student?.index_number
+          student: enrollment.student
         }))
       );
       setEnrollments(allEnrollments);
-    }
-  };
-
-  const handleDeleteCourse = async (courseId: number) => {
-    try {
-      const { error: enrollmentError } = await supabase
-        .from('enrollments')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (enrollmentError) throw enrollmentError;
-
-      const { error: materialsError } = await supabase
-        .from('course_materials')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (materialsError) throw materialsError;
-
-      const { error: courseError } = await supabase
-        .from('courses')
-        .delete()
-        .eq('id', courseId);
-
-      if (courseError) throw courseError;
-
-      toast({
-        title: "Success",
-        description: "Course and related data deleted successfully",
-      });
-
-      fetchCourses(professorId, isAdmin);
-    } catch (error) {
-      console.error('Error deleting course:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete course and related data",
-        variant: "destructive",
-      });
     }
   };
 
@@ -146,7 +107,18 @@ export const ProfessorDashboard = () => {
       />
 
       <div className="grid grid-cols-1 gap-6">
-        <CourseManagement onCourseCreated={() => fetchCourses(professorId, isAdmin)} />
+        {!isAdmin && (
+          <ProfessorCourses 
+            courses={courses}
+            onCourseUpdated={() => fetchCourses(professorId, isAdmin)}
+          />
+        )}
+
+        {isAdmin && (
+          <CourseManagement 
+            onCourseCreated={() => fetchCourses(professorId, isAdmin)} 
+          />
+        )}
 
         <Card>
           <CardHeader>
@@ -156,7 +128,44 @@ export const ProfessorDashboard = () => {
             <EnrollmentTable 
               enrollments={enrollments}
               isAdmin={isAdmin}
-              onDeleteCourse={handleDeleteCourse}
+              onDeleteCourse={async (courseId) => {
+                try {
+                  const { error: enrollmentError } = await supabase
+                    .from('enrollments')
+                    .delete()
+                    .eq('course_id', courseId);
+
+                  if (enrollmentError) throw enrollmentError;
+
+                  const { error: materialsError } = await supabase
+                    .from('course_materials')
+                    .delete()
+                    .eq('course_id', courseId);
+
+                  if (materialsError) throw materialsError;
+
+                  const { error: courseError } = await supabase
+                    .from('courses')
+                    .delete()
+                    .eq('id', courseId);
+
+                  if (courseError) throw courseError;
+
+                  toast({
+                    title: "Success",
+                    description: "Course and related data deleted successfully",
+                  });
+
+                  fetchCourses(professorId, isAdmin);
+                } catch (error) {
+                  console.error('Error deleting course:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to delete course and related data",
+                    variant: "destructive",
+                  });
+                }
+              }}
             />
           </CardContent>
         </Card>
