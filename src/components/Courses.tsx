@@ -1,3 +1,4 @@
+
 import { CourseCard } from "./CourseCard";
 import { CreateCourseDialog } from "./CreateCourseDialog";
 import { useCourses } from "@/hooks/useCourses";
@@ -19,14 +20,20 @@ export const Courses = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {courses.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            isEnrolled={enrolledCourses.includes(course.id)}
-            onEnroll={enrollInCourse}
-          />
-        ))}
+        {courses && courses.length > 0 ? (
+          courses.map((course) => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              isEnrolled={enrolledCourses.includes(course.id)}
+              onEnroll={enrollInCourse}
+            />
+          ))
+        ) : (
+          <p className="col-span-2 text-center text-gray-500">
+            No courses available at the moment.
+          </p>
+        )}
       </div>
     </div>
   );
