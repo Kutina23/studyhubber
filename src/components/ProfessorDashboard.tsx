@@ -1,18 +1,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Book, Users, Video, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CourseCreationForm } from "./admin/CourseCreationForm";
-import { Button } from "./ui/button";
+import { DashboardStats } from "./dashboard/DashboardStats";
+import { EnrollmentTable } from "./dashboard/EnrollmentTable";
+import { CourseManagement } from "./dashboard/CourseManagement";
 
 export const ProfessorDashboard = () => {
   const { toast } = useToast();
@@ -107,7 +99,6 @@ export const ProfessorDashboard = () => {
 
   const handleDeleteCourse = async (courseId: number) => {
     try {
-      // First delete all enrollments for this course
       const { error: enrollmentError } = await supabase
         .from('enrollments')
         .delete()
@@ -115,7 +106,6 @@ export const ProfessorDashboard = () => {
 
       if (enrollmentError) throw enrollmentError;
 
-      // Then delete all course materials
       const { error: materialsError } = await supabase
         .from('course_materials')
         .delete()
@@ -123,7 +113,6 @@ export const ProfessorDashboard = () => {
 
       if (materialsError) throw materialsError;
 
-      // Finally delete the course
       const { error: courseError } = await supabase
         .from('courses')
         .delete()
@@ -136,7 +125,6 @@ export const ProfessorDashboard = () => {
         description: "Course and related data deleted successfully",
       });
 
-      // Refresh courses
       fetchCourses(professorId, isAdmin);
     } catch (error) {
       console.error('Error deleting course:', error);
@@ -152,76 +140,24 @@ export const ProfessorDashboard = () => {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Professor Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-            <Book className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{courses.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{enrollments.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Course Videos</CardTitle>
-            <Video className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">-</div>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardStats 
+        coursesCount={courses.length}
+        studentsCount={enrollments.length}
+      />
 
       <div className="grid grid-cols-1 gap-6">
-        <CourseCreationForm onCourseCreated={() => fetchCourses(professorId, isAdmin)} />
+        <CourseManagement onCourseCreated={() => fetchCourses(professorId, isAdmin)} />
 
         <Card>
           <CardHeader>
             <CardTitle>Course Enrollments</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead>Student ID</TableHead>
-                  {isAdmin && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {enrollments.map((enrollment) => (
-                  <TableRow key={enrollment.id}>
-                    <TableCell>{enrollment.course_title}</TableCell>
-                    <TableCell>{enrollment.student_name}</TableCell>
-                    <TableCell>{enrollment.student_id}</TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteCourse(enrollment.course_id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <EnrollmentTable 
+              enrollments={enrollments}
+              isAdmin={isAdmin}
+              onDeleteCourse={handleDeleteCourse}
+            />
           </CardContent>
         </Card>
       </div>
