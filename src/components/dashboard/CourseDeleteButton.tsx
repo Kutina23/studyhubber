@@ -1,15 +1,17 @@
-import { DashboardStats } from "./dashboard/DashboardStats";
-import { ProfessorCourses } from "./dashboard/ProfessorCourses";
-import { ProfessorEnrollments } from "./dashboard/ProfessorEnrollments";
-import { useProfessorData } from "@/hooks/useProfessorData";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Trash2 } from "lucide-react";
 
-export const ProfessorDashboard = () => {
+interface CourseDeleteButtonProps {
+  courseId: number;
+  onSuccess: () => void;
+}
+
+export const CourseDeleteButton = ({ courseId, onSuccess }: CourseDeleteButtonProps) => {
   const { toast } = useToast();
-  const { courses, enrollments, professorId, refreshCourses } = useProfessorData();
 
-  const handleDeleteCourse = async (courseId: number) => {
+  const handleDelete = async () => {
     try {
       const { error: enrollmentError } = await supabase
         .from('enrollments')
@@ -37,7 +39,7 @@ export const ProfessorDashboard = () => {
         description: "Course and related data deleted successfully",
       });
 
-      refreshCourses();
+      onSuccess();
     } catch (error) {
       console.error('Error deleting course:', error);
       toast({
@@ -49,25 +51,12 @@ export const ProfessorDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Professor Dashboard</h1>
-      
-      <DashboardStats 
-        coursesCount={courses.length}
-        studentsCount={enrollments.length}
-      />
-
-      <div className="grid grid-cols-1 gap-6">
-        <ProfessorCourses 
-          courses={courses}
-          onCourseUpdated={refreshCourses}
-        />
-
-        <ProfessorEnrollments 
-          enrollments={enrollments}
-          onDeleteCourse={handleDeleteCourse}
-        />
-      </div>
-    </div>
+    <Button
+      variant="destructive"
+      size="sm"
+      onClick={handleDelete}
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
   );
 };
