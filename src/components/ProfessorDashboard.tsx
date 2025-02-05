@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardStats } from "./dashboard/DashboardStats";
 import { EnrollmentTable } from "./dashboard/EnrollmentTable";
-import { CourseManagement } from "./dashboard/CourseManagement";
 import { ProfessorCourses } from "./dashboard/ProfessorCourses";
 
 export const ProfessorDashboard = () => {
@@ -12,27 +11,19 @@ export const ProfessorDashboard = () => {
   const [courses, setCourses] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [professorId, setProfessorId] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fetchProfessorData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data: roles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id);
-        
-        setIsAdmin(roles?.some(role => role.role === 'admin') || false);
-
         const { data: professorData, error: professorError } = await supabase
           .from('professors')
           .select('*')
           .eq('user_id', user.id)
           .single();
 
-        if (professorError && !isAdmin) {
+        if (professorError) {
           console.error('Error fetching professor:', professorError);
           toast({
             title: "Error",
@@ -44,16 +35,16 @@ export const ProfessorDashboard = () => {
 
         if (professorData) {
           setProfessorId(professorData.id);
+          fetchCourses(professorData.id);
         }
-        fetchCourses(professorData?.id, isAdmin);
       }
     };
 
     fetchProfessorData();
   }, [toast]);
 
-  const fetchCourses = async (profId: string | null, isAdmin: boolean) => {
-    let query = supabase
+  const fetchCourses = async (profId: string) => {
+    const { data: coursesData, error: coursesError } = await supabase
       .from('courses')
       .select(`
         *,
@@ -65,13 +56,8 @@ export const ProfessorDashboard = () => {
             index_number
           )
         )
-      `);
-
-    if (!isAdmin && profId) {
-      query = query.eq('professor_id', profId);
-    }
-
-    const { data: coursesData, error: coursesError } = await query;
+      `)
+      .eq('professor_id', profId);
 
     if (coursesError) {
       console.error('Error fetching courses:', coursesError);
@@ -107,18 +93,10 @@ export const ProfessorDashboard = () => {
       />
 
       <div className="grid grid-cols-1 gap-6">
-        {!isAdmin && (
-          <ProfessorCourses 
-            courses={courses}
-            onCourseUpdated={() => fetchCourses(professorId, isAdmin)}
-          />
-        )}
-
-        {isAdmin && (
-          <CourseManagement 
-            onCourseCreated={() => fetchCourses(professorId, isAdmin)} 
-          />
-        )}
+        <ProfessorCourses 
+          courses={courses}
+          onCourseUpdated={() => fetchCourses(professorId!)}
+        />
 
         <Card>
           <CardHeader>
@@ -127,7 +105,6 @@ export const ProfessorDashboard = () => {
           <CardContent>
             <EnrollmentTable 
               enrollments={enrollments}
-              isAdmin={isAdmin}
               onDeleteCourse={async (courseId) => {
                 try {
                   const { error: enrollmentError } = await supabase
@@ -156,7 +133,7 @@ export const ProfessorDashboard = () => {
                     description: "Course and related data deleted successfully",
                   });
 
-                  fetchCourses(professorId, isAdmin);
+                  fetchCourses(professorId!);
                 } catch (error) {
                   console.error('Error deleting course:', error);
                   toast({

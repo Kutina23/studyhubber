@@ -22,14 +22,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CourseForm } from "@/components/course/CourseForm";
-import { useToast } from "@/components/ui/use-toast";
+import { CreateCourseDialog } from "@/components/CreateCourseDialog";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Course {
   id: number;
   title: string;
   description: string;
-  duration: string;
+  duration: number;
   schedule: string;
   instructor: string;
 }
@@ -82,13 +83,22 @@ export const ProfessorCourses = ({ courses, onCourseUpdated }: ProfessorCoursesP
     }
   };
 
-  const handleUpdateCourse = async (courseData: Partial<Course>) => {
+  const handleUpdateCourse = async (courseData: {
+    title: string;
+    description: string;
+    duration: string;
+    schedule: string;
+    instructor: string;
+  }) => {
     if (!editingCourse) return;
 
     try {
       const { error } = await supabase
         .from('courses')
-        .update(courseData)
+        .update({
+          ...courseData,
+          duration: parseInt(courseData.duration)
+        })
         .eq('id', editingCourse.id);
 
       if (error) throw error;
@@ -112,8 +122,34 @@ export const ProfessorCourses = ({ courses, onCourseUpdated }: ProfessorCoursesP
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>My Courses</CardTitle>
+        <CreateCourseDialog onCreateCourse={async (courseData) => {
+          try {
+            const { error } = await supabase
+              .from('courses')
+              .insert({
+                ...courseData,
+                duration: parseInt(courseData.duration)
+              });
+
+            if (error) throw error;
+
+            toast({
+              title: "Success",
+              description: "Course created successfully",
+            });
+
+            onCourseUpdated();
+          } catch (error) {
+            console.error('Error creating course:', error);
+            toast({
+              title: "Error",
+              description: "Failed to create course",
+              variant: "destructive",
+            });
+          }
+        }} />
       </CardHeader>
       <CardContent>
         <Table>
@@ -162,12 +198,15 @@ export const ProfessorCourses = ({ courses, onCourseUpdated }: ProfessorCoursesP
                 data={{
                   title: editingCourse.title,
                   description: editingCourse.description,
-                  duration: editingCourse.duration,
+                  duration: editingCourse.duration.toString(),
                   schedule: editingCourse.schedule,
                   instructor: editingCourse.instructor,
                 }}
                 onChange={(field, value) => {
-                  handleUpdateCourse({ ...editingCourse, [field]: value });
+                  handleUpdateCourse({
+                    ...editingCourse,
+                    [field]: value,
+                  } as any);
                 }}
               />
             )}
