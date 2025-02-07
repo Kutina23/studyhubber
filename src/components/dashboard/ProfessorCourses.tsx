@@ -1,32 +1,16 @@
 
 import { useState } from "react";
-import { Edit, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { CourseForm } from "@/components/course/CourseForm";
 import { CreateCourseDialog } from "@/components/CreateCourseDialog";
-import { VideoUploadDialog } from "@/components/course/VideoUploadDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CoursesTable } from "./CoursesTable";
+import { EditCourseDialog } from "./EditCourseDialog";
 
 interface Course {
   id: number;
@@ -154,70 +138,18 @@ export const ProfessorCourses = ({ courses, onCourseUpdated }: ProfessorCoursesP
         <CreateCourseDialog onCreateCourse={handleCreateCourse} />
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Duration (weeks)</TableHead>
-              <TableHead>Schedule</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {courses.map((course) => (
-              <TableRow key={course.id}>
-                <TableCell>{course.title}</TableCell>
-                <TableCell>{course.duration}</TableCell>
-                <TableCell>{course.schedule}</TableCell>
-                <TableCell className="space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingCourse(course)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteCourse(course.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <VideoUploadDialog 
-                    courseId={course.id}
-                    onVideoUploaded={onCourseUpdated}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        <Dialog open={!!editingCourse} onOpenChange={() => setEditingCourse(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Course</DialogTitle>
-            </DialogHeader>
-            {editingCourse && (
-              <CourseForm
-                data={{
-                  title: editingCourse.title,
-                  description: editingCourse.description,
-                  duration: editingCourse.duration.toString(),
-                  schedule: editingCourse.schedule,
-                  instructor: editingCourse.instructor,
-                }}
-                onChange={(field, value) => {
-                  handleUpdateCourse({
-                    ...editingCourse,
-                    [field]: value,
-                  } as any);
-                }}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
+        <CoursesTable
+          courses={courses}
+          onEditCourse={setEditingCourse}
+          onDeleteCourse={handleDeleteCourse}
+          onCourseUpdated={onCourseUpdated}
+        />
+        
+        <EditCourseDialog
+          course={editingCourse}
+          onClose={() => setEditingCourse(null)}
+          onUpdate={handleUpdateCourse}
+        />
       </CardContent>
     </Card>
   );
