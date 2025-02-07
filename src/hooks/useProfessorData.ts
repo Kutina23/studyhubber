@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +23,8 @@ export const useProfessorData = () => {
           )
         )
       `)
-      .eq('professor_id', profId);
+      .eq('professor_id', profId)
+      .order('created_at', { ascending: false });
 
     if (coursesError) {
       console.error('Error fetching courses:', coursesError);

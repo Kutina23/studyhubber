@@ -30,7 +30,13 @@ export const useCourses = () => {
     const fetchCourses = async () => {
       const { data: coursesData, error } = await supabase
         .from('courses')
-        .select('*');
+        .select(`
+          *,
+          professor:professors (
+            name
+          )
+        `)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching courses:', error);
@@ -43,7 +49,10 @@ export const useCourses = () => {
       }
 
       if (coursesData) {
-        setCourses(coursesData);
+        setCourses(coursesData.map(course => ({
+          ...course,
+          instructor: course.professor?.name || course.instructor
+        })));
       }
     };
 
@@ -70,7 +79,8 @@ export const useCourses = () => {
           const { data: enrollments } = await supabase
             .from('enrollments')
             .select('course_id')
-            .eq('student_id', studentData.id);
+            .eq('student_id', studentData.id)
+            .eq('status', 'active');
           
           if (enrollments) {
             setEnrolledCourses(enrollments.map(e => e.course_id));
@@ -90,11 +100,23 @@ export const useCourses = () => {
 
   const createCourse = async (courseData: any) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: professorData, error: professorError } = await supabase
+        .from('professors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (professorError) throw professorError;
+
       const { error } = await supabase
         .from('courses')
         .insert({
           ...courseData,
           duration: parseInt(courseData.duration),
+          professor_id: professorData.id
         });
 
       if (error) throw error;
@@ -113,6 +135,7 @@ export const useCourses = () => {
         setCourses(coursesData);
       }
     } catch (error) {
+      console.error('Error creating course:', error);
       toast({
         title: "Error",
         description: "Failed to create course. Please try again.",
@@ -153,18 +176,10 @@ export const useCourses = () => {
         .insert({
           course_id: courseId,
           student_id: studentId,
+          status: 'active'
         });
 
-      if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          toast({
-            title: "Already Enrolled",
-            description: `You are already enrolled in ${courseTitle}`,
-          });
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       setEnrolledCourses([...enrolledCourses, courseId]);
       toast({
