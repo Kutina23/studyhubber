@@ -1,3 +1,4 @@
+
 import { DashboardStats } from "./dashboard/DashboardStats";
 import { ProfessorCourses } from "./dashboard/ProfessorCourses";
 import { ProfessorEnrollments } from "./dashboard/ProfessorEnrollments";
@@ -11,26 +12,12 @@ export const ProfessorDashboard = () => {
 
   const handleDeleteCourse = async (courseId: number) => {
     try {
-      const { error: enrollmentError } = await supabase
-        .from('enrollments')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (enrollmentError) throw enrollmentError;
-
-      const { error: materialsError } = await supabase
-        .from('course_materials')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (materialsError) throw materialsError;
-
-      const { error: courseError } = await supabase
+      const { error } = await supabase
         .from('courses')
         .delete()
         .eq('id', courseId);
 
-      if (courseError) throw courseError;
+      if (error) throw error;
 
       toast({
         title: "Success",

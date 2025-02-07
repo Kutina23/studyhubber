@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,26 +14,12 @@ export const CourseDeleteButton = ({ courseId, onSuccess }: CourseDeleteButtonPr
 
   const handleDelete = async () => {
     try {
-      const { error: enrollmentError } = await supabase
-        .from('enrollments')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (enrollmentError) throw enrollmentError;
-
-      const { error: materialsError } = await supabase
-        .from('course_materials')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (materialsError) throw materialsError;
-
-      const { error: courseError } = await supabase
+      const { error } = await supabase
         .from('courses')
         .delete()
         .eq('id', courseId);
 
-      if (courseError) throw courseError;
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -44,7 +31,7 @@ export const CourseDeleteButton = ({ courseId, onSuccess }: CourseDeleteButtonPr
       console.error('Error deleting course:', error);
       toast({
         title: "Error",
-        description: "Failed to delete course and related data",
+        description: "Failed to delete course",
         variant: "destructive",
       });
     }
