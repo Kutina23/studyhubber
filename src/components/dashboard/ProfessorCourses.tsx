@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { CourseForm } from "@/components/course/CourseForm";
 import { CreateCourseDialog } from "@/components/CreateCourseDialog";
+import { VideoUploadDialog } from "@/components/course/VideoUploadDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,20 +48,6 @@ export const ProfessorCourses = ({ courses, onCourseUpdated }: ProfessorCoursesP
 
   const handleDeleteCourse = async (courseId: number) => {
     try {
-      const { error: enrollmentError } = await supabase
-        .from('enrollments')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (enrollmentError) throw enrollmentError;
-
-      const { error: materialsError } = await supabase
-        .from('course_materials')
-        .delete()
-        .eq('course_id', courseId);
-
-      if (materialsError) throw materialsError;
-
       const { error: courseError } = await supabase
         .from('courses')
         .delete()
@@ -182,6 +170,10 @@ export const ProfessorCourses = ({ courses, onCourseUpdated }: ProfessorCoursesP
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  <VideoUploadDialog 
+                    courseId={course.id}
+                    onVideoUploaded={onCourseUpdated}
+                  />
                 </TableCell>
               </TableRow>
             ))}
